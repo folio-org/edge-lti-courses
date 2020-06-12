@@ -89,6 +89,7 @@ public class MainVerticle extends EdgeVerticle {
       secureStore,
       ocf,
       apiKeyHelper,
+      algorithm,
       jwtVerifier,
       toolPublicKey
     );
@@ -101,7 +102,9 @@ public class MainVerticle extends EdgeVerticle {
 
     // Takes an LTI DeepLinkRequest containing a course ID and returns embeddable HTML
     // that contains an endpoint for fetching the reserves for that course.
-    router.route(HttpMethod.POST, "/lti-courses/deep-link-request").handler(ltiCoursesHandler::handleDeepLinkRequest);
+    router.route(HttpMethod.POST, "/lti-courses/deep-link-request").handler(ltiCoursesHandler::handleDeepLinkRequestCourseNumber);
+    router.route(HttpMethod.POST, "/lti-courses/deep-link-request/externalId").handler(ltiCoursesHandler::handleDeepLinkRequestCourseRegistrarId);
+    router.route(HttpMethod.POST, "/lti-courses/deep-link-request/registrarId").handler(ltiCoursesHandler::handleDeepLinkRequestCourseExternalId);
 
     // The endpoint returned in the LTI DeepLinkResponse.
     router.route(HttpMethod.GET, "/lti-courses/reserves/:courseId").handler(ltiCoursesHandler::handleGetReservesById);

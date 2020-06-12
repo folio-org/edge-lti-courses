@@ -1,8 +1,7 @@
 package org.folio.edge.ltiCourses.utils;
 
-import java.util.concurrent.CompletableFuture;
-
 import org.apache.log4j.Logger;
+
 import org.folio.edge.core.utils.OkapiClient;
 
 import io.vertx.core.Vertx;
