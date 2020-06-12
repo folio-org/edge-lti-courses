@@ -1,6 +1,8 @@
 package org.folio.edge.ltiCourses;
 
 import java.net.URLEncoder;
+import java.time.Instant;
+import java.util.Date;
 
 import org.apache.log4j.Logger;
 
@@ -8,14 +10,15 @@ import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.Handler;
 import org.folio.edge.core.security.SecureStore;
 import org.folio.edge.ltiCourses.utils.LTIContextClaim;
+import org.folio.edge.ltiCourses.utils.LTIDeepLinkSettingsClaim;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClient;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
 
+import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.auth0.jwt.interfaces.Claim;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
@@ -54,6 +57,10 @@ public class LtiCoursesHandler extends Handler {
         String token = attributes.get("id_token");
         logger.info("id_token=" + token);
 
+        logger.info("absoluteUri=" + ctx.request().absoluteURI());
+        String baseUrl = ctx.request().absoluteURI().split("/lti-courses/deep-link-request")[0];
+        logger.info("baseUrl=" + baseUrl);
+
         DecodedJWT jwt;
         try {
           jwt = jwtVerifier.verify(token);
@@ -66,8 +73,9 @@ public class LtiCoursesHandler extends Handler {
           return;
         }
 
-        Claim claim = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/context");
-        LTIContextClaim contextClaim = claim.as(LTIContextClaim.class);
+        LTIDeepLinkSettingsClaim deepLinkSettingsClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings").as(LTIDeepLinkSettingsClaim.class);
+        LTIContextClaim contextClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/context").as(LTIContextClaim.class);
+
         String courseTitle = contextClaim.getTitle();
         logger.info("Class Title: " + courseTitle);
 
@@ -93,14 +101,14 @@ public class LtiCoursesHandler extends Handler {
               }
 
               resp.bodyHandler(response -> {
-                String courseId;
+                String courseListingId;
                 String courseName;
 
                 try {
-                  JsonObject responseJson = new JsonObject(response.toString());
-                  JsonArray courses = responseJson.getJsonArray("courses");
+                  JsonObject modCoursesResponseJson = new JsonObject(response.toString());
+                  JsonArray courses = modCoursesResponseJson.getJsonArray("courses");
                   JsonObject course = courses.getJsonObject(0);
-                  courseId = course.getString("id");
+                  courseListingId = course.getString("courseListingId");
                   courseName = course.getString("name");
                 } catch (Exception exception) {
                   logger.error(exception.toString());
@@ -109,9 +117,29 @@ public class LtiCoursesHandler extends Handler {
                   return;
                 }
 
-                logger.info("Found " + courseId + ": " + courseName);
+                String reservesUrl = baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx);
+
+                JsonObject htmlLink = new JsonObject();
+                htmlLink.put("type", "html");
+                htmlLink.put("title", deepLinkSettingsClaim.getTitle());
+                htmlLink.put("html", "<javascript>fetch(" + reservesUrl + ")</javascript>");
+
+                String deepLinkResponse = JWT.create()
+                  .withIssuer(jwt.getAudience().get(0))
+                  .withAudience(jwt.getIssuer())
+                  .withExpiresAt(Date.from(Instant.now().plusSeconds(5 * 60)))
+                  .withIssuedAt(new Date())
+                  .withClaim("nonce", jwt.getClaim("nonce").asString())
+                  .withClaim("https://purl.imsglobal.org/spec/lti/claim/message_type", "LtiDeepLinkingResponse")
+                  .withClaim("https://purl.imsglobal.org/spec/lti/claim/version", "1.3.0")
+                  .withClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id", jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id").asString())
+                  .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/data", deepLinkSettingsClaim.getData())
+                  .withArrayClaim("https://purl.imsglobal.org/spec/lti-dl/claim/content_items", new String[]{ htmlLink.encode() })
+                  .sign(algorithm);
+
+                logger.info("Found " + courseListingId + ": " + courseName);
                 ctx.response().setStatusCode(200);
-                ctx.response().end("Found " + courseId + ": " + courseName);
+                ctx.response().end("\nFound " + courseListingId + ": " + courseName + "\n\nJWT DeepLinkResponse: " + deepLinkResponse);
               });
             },
             t -> handleProxyException(ctx, t)
