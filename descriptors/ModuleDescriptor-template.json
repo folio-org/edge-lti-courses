@@ -1,0 +1,31 @@
+{
+  "id": "${artifactId}-${version}",
+  "name": "LTI Course Reserves Edge API",
+  "provides": [],
+  "requires": [
+    {
+      "id": "course-storage",
+      "version": "0.1"
+    },
+    {
+      "id": "course-reserves-storage",
+      "version": "0.3"
+    }
+  ],
+  "permissionSets": [],
+  "launchDescriptor": {
+    "dockerImage": "${artifactId}:${version}",
+    "dockerPull": false,
+    "dockerArgs": {
+      "HostConfig": {
+        "Memory": 268435456,
+        "PortBindings": { "8081/tcp": [ { "HostPort": "%p" } ] }
+      }
+    },
+    "env": [
+      { "name": "JAVA_OPTIONS",
+        "value": "-XX:MaxRAMPercentage=66.0"
+      }
+    ]
+  }
+}
