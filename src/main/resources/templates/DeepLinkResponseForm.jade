@@ -1,0 +1,7 @@
+html
+  form(action='#{deepLinkResponseUrl}' id='auto-submit' method='POST')
+    h2 Transferring data from Folio to the LTI Platform
+    input(type='hidden' name='JWT' value='#{jwt}')
+    input(type='submit' name='go')
+  script(type='text/javascript').
+    document.getElementById('auto-submit').submit();

@@ -3,6 +3,8 @@ package org.folio.edge.ltiCourses;
 import java.net.URLEncoder;
 import java.time.Instant;
 import java.util.Date;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 
@@ -24,10 +26,12 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
 
 public class LtiCoursesHandler extends Handler {
 
   protected Algorithm algorithm;
+  protected JadeTemplateEngine jadeTemplateEngine;
   protected JWTVerifier jwtVerifier;
   protected String toolPublicKey;
 
@@ -39,13 +43,15 @@ public class LtiCoursesHandler extends Handler {
     ApiKeyHelper apiKeyHelper,
     Algorithm algorithm,
     JWTVerifier jwtVerifier,
-    String toolPublicKey
+    String toolPublicKey,
+    JadeTemplateEngine jadeTemplateEngine
   ) {
     super(secureStore, ocf, apiKeyHelper);
 
     this.algorithm = algorithm;
     this.jwtVerifier = jwtVerifier;
     this.toolPublicKey = toolPublicKey;
+    this.jadeTemplateEngine = jadeTemplateEngine;
   }
 
   protected void handleCommonLTI(RoutingContext ctx, String courseIdType) {
@@ -113,33 +119,70 @@ public class LtiCoursesHandler extends Handler {
                 } catch (Exception exception) {
                   logger.error(exception.toString());
                   ctx.response().setStatusCode(400);
-                  ctx.response().end(exception.toString());
+                  ctx.response().end(exception.toString() + " - That course can't be found in the Course Reserves app!");
                   return;
                 }
 
-                String reservesUrl = baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx);
+                JsonObject htmlDeepLinkJson = new JsonObject()
+                  .put("id", courseListingId)
+                  .put("startDate", "2019-09-05")
+                  .put("endDate", false)
+                  .put("reservesUrl", baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx));
 
-                JsonObject htmlLink = new JsonObject();
-                htmlLink.put("type", "html");
-                htmlLink.put("title", deepLinkSettingsClaim.getTitle());
-                htmlLink.put("html", "<javascript>fetch(" + reservesUrl + ")</javascript>");
+                logger.info("Course listing id: " + courseListingId);
+                logger.info("Reserves URL: " + baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx));
 
-                String deepLinkResponse = JWT.create()
-                  .withIssuer(jwt.getAudience().get(0))
-                  .withAudience(jwt.getIssuer())
-                  .withExpiresAt(Date.from(Instant.now().plusSeconds(5 * 60)))
-                  .withIssuedAt(new Date())
-                  .withClaim("nonce", jwt.getClaim("nonce").asString())
-                  .withClaim("https://purl.imsglobal.org/spec/lti/claim/message_type", "LtiDeepLinkingResponse")
-                  .withClaim("https://purl.imsglobal.org/spec/lti/claim/version", "1.3.0")
-                  .withClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id", jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id").asString())
-                  .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/data", deepLinkSettingsClaim.getData())
-                  .withArrayClaim("https://purl.imsglobal.org/spec/lti-dl/claim/content_items", new String[]{ htmlLink.encode() })
-                  .sign(algorithm);
+                jadeTemplateEngine.render(htmlDeepLinkJson, "templates/HTMLDeepLink", htmlDeepLink -> {
+                  // if (!htmlDeepLink.succeeded()) {
+                  //   String error = "Failed to render HTMLDeepLink template: " + htmlDeepLink.cause();
+                  //   logger.error(error);
+                  //   ctx.response().setStatusCode(400);
+                  //   ctx.response().end(error);
+                  //   return;
+                  // }
+
+                  logger.info("DeepLinkHTML: " + htmlDeepLink.result());
+
+                  HashMap<String,String> link = new HashMap<String,String>();
+                  link.put("type", "html");
+                  link.put("title", deepLinkSettingsClaim.title);
+                  link.put("html", htmlDeepLink.result().toString());
+
+                  ArrayList<HashMap<String, String>> links = new ArrayList<HashMap<String, String>>();
+                  links.add(link);
+
+                  String deepLinkResponse = JWT.create()
+                    .withIssuer(jwt.getAudience().get(0))
+                    .withAudience(jwt.getIssuer())
+                    .withExpiresAt(Date.from(Instant.now().plusSeconds(5 * 60)))
+                    .withIssuedAt(new Date())
+                    .withClaim("nonce", jwt.getClaim("nonce").asString())
+                    .withClaim("https://purl.imsglobal.org/spec/lti/claim/message_type", "LtiDeepLinkingResponse")
+                    .withClaim("https://purl.imsglobal.org/spec/lti/claim/version", "1.3.0")
+                    .withClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id", jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id").asString())
+                    .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/data", deepLinkSettingsClaim.data)
+                    .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/content_items", links)
+                    .sign(algorithm);
+
+                  JsonObject responseFormObject = new JsonObject()
+                    .put("deepLinkResponseUrl", deepLinkSettingsClaim.deep_link_return_url)
+                    .put("jwt", deepLinkResponse);
+
+                  jadeTemplateEngine.render(responseFormObject, "templates/DeepLinkResponseForm", deepLinkResponseForm -> {
+                    if (!deepLinkResponseForm.succeeded()) {
+                      String error = "Failed to render DeepLinkResponseForm template: " + deepLinkResponseForm.cause();
+                      logger.error(error);
+                      ctx.response().setStatusCode(400);
+                      ctx.response().end(error);
+                      return;
+                    }
+
+                    ctx.response().setStatusCode(200);
+                    ctx.response().end(deepLinkResponseForm.result());
+                  });
+                });
 
                 logger.info("Found " + courseListingId + ": " + courseName);
-                ctx.response().setStatusCode(200);
-                ctx.response().end("\nFound " + courseListingId + ": " + courseName + "\n\nJWT DeepLinkResponse: " + deepLinkResponse);
               });
             },
             t -> handleProxyException(ctx, t)

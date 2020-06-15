@@ -7,6 +7,10 @@ import static org.folio.edge.ltiCourses.utils.PemUtils.readPublicKeyFromFile;
 import static org.folio.edge.ltiCourses.Constants.LTI_PLATFORM_PUBLIC_KEY_FILE;
 import static org.folio.edge.ltiCourses.Constants.LTI_TOOL_PRIVATE_KEY_FILE;
 import static org.folio.edge.ltiCourses.Constants.LTI_TOOL_PUBLIC_KEY_FILE;
+import static org.folio.edge.ltiCourses.Constants.TLS_CERT_FILE;
+import static org.folio.edge.ltiCourses.Constants.TLS_KEY_FILE;
+
+import org.folio.edge.ltiCourses.TLSVerticle;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -24,10 +28,13 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
+import io.vertx.core.net.PemKeyCertOptions;
 
-public class MainVerticle extends EdgeVerticle {
+public class MainVerticle extends TLSVerticle {
 
   private static final Logger logger = Logger.getLogger(MainVerticle.class);
 
@@ -36,8 +43,24 @@ public class MainVerticle extends EdgeVerticle {
   }
 
   @Override
+  public void setServerOptions(HttpServerOptions options) {
+    if (System.getProperty(TLS_CERT_FILE) != null && System.getProperty(TLS_CERT_FILE) != null) {
+      logger.info("Running with SSL via Cert at: " + System.getProperty(TLS_CERT_FILE));
+      logger.info("Running with SSL via Key at: " + System.getProperty(TLS_KEY_FILE));
+
+      options
+        .setSsl(true)
+        .setPemKeyCertOptions(
+          new PemKeyCertOptions()
+            .setCertPath(System.getProperty(TLS_CERT_FILE))
+            .setKeyPath(System.getProperty(TLS_KEY_FILE))
+        );
+    }
+  }
+
+  @Override
   public Router defineRoutes() {
-    // First, set up the JWT algorithm by collecting our keys and initing.
+    // Set up the JWT algorithm by collecting our keys and initing.
     final String platformPublicKeyFile = System.getProperty(LTI_PLATFORM_PUBLIC_KEY_FILE);
     final String toolPrivateKeyFile = System.getProperty(LTI_TOOL_PRIVATE_KEY_FILE);
     final String toolPublicKeyFile = System.getProperty(LTI_TOOL_PUBLIC_KEY_FILE);
@@ -62,20 +85,20 @@ public class MainVerticle extends EdgeVerticle {
       return null;
     }
 
-
     final Algorithm algorithm = Algorithm.RSA256(platformPublicKey, toolPrivateKey);
 
-    JWTVerifier jwtVerifier = JWT.require(algorithm)
-    // .withIssuer("https://lti-ri.imsglobal.org")
-    .build();
+    JWTVerifier jwtVerifier = JWT.require(algorithm).build();
 
-    // Also save off the public key so we can send it if requested.
+    // Save off the public key so we can send it if requested.
     String toolPublicKey = "";
     try {
       toolPublicKey = new String(Files.readAllBytes(Paths.get(toolPublicKeyFile)));
     } catch (IOException e) {
       logger.error("Failed to read tool public key from file");
     }
+
+    // Init the Jade templating engine
+    JadeTemplateEngine jadeTemplateEngine = JadeTemplateEngine.create(vertx);
 
     // Next, set up the common Edge module stuff.
     final LtiCoursesOkapiClientFactory ocf = new LtiCoursesOkapiClientFactory(
@@ -91,7 +114,8 @@ public class MainVerticle extends EdgeVerticle {
       apiKeyHelper,
       algorithm,
       jwtVerifier,
-      toolPublicKey
+      toolPublicKey,
+      jadeTemplateEngine
     );
 
     final Router router = Router.router(vertx);

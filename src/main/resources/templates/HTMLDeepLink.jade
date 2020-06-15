@@ -1,0 +1,26 @@
+html
+  div(id!='course-reserves-#{id}')
+  script(type!='text/javascript').
+    const courseStartDate = #{startDate};
+    const courseEndDate = #{endDate};
+    window.onLoad(() => {
+      fetch('#{reservesUrl}')
+        .then(response => response.json())
+        .then(json => {
+          const target = document.getElementById('course-reserves-#{id}');
+          if (json.totalRecords === 0) {
+            target.innerText('No reserves for course with ID #{id}');
+            return;
+          }
+
+          const ul = document.createElement('ul');
+          const listItems = json.reserves.map(r => {
+            const item = r.copiedItem;
+            const li = document.createElement('li');
+            li.innerHTML = `${item.name}: ${item.barcode}`;
+          });
+          ul.append(listItems);
+          target.append(ul);
+        });
+    })
+

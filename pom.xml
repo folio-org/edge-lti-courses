@@ -42,7 +42,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>3.4.0</version>
+        <version>3.9.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -58,11 +58,12 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/io.vertx/vertx-web-templ-jade -->
     <dependency>
-      <groupId>io.jsonwebtoken</groupId>
-      <artifactId>jjwt</artifactId>
-      <version>0.6.0</version>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-web-templ-jade</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.folio</groupId>
       <artifactId>edge-common</artifactId>
@@ -81,7 +82,6 @@
         <artifactId>bcprov-jdk15on</artifactId>
         <version>1.65.01</version>
     </dependency>
-
 
     <!-- Only needed for AwsParamStore -->
     <dependency>
