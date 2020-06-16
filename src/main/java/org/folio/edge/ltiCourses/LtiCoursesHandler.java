@@ -16,6 +16,9 @@ import org.folio.edge.ltiCourses.utils.LTIDeepLinkSettingsClaim;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClient;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
 
+import static org.folio.edge.ltiCourses.Constants.BASE_URL;
+import static org.folio.edge.ltiCourses.Constants.RESERVES_NOT_FOUND_MESSAGE;
+
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -23,7 +26,6 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 import io.vertx.core.MultiMap;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
@@ -34,6 +36,11 @@ public class LtiCoursesHandler extends Handler {
   protected JadeTemplateEngine jadeTemplateEngine;
   protected JWTVerifier jwtVerifier;
   protected String toolPublicKey;
+
+  protected String baseUrl = System.getProperty(BASE_URL);
+
+  protected String courseNotFound = "The requested course was not found.";
+  protected String reservesNotFound = System.getProperty(RESERVES_NOT_FOUND_MESSAGE, "This course has no reserves.");
 
   private static final Logger logger = Logger.getLogger(LtiCoursesHandler.class);
 
@@ -52,6 +59,8 @@ public class LtiCoursesHandler extends Handler {
     this.jwtVerifier = jwtVerifier;
     this.toolPublicKey = toolPublicKey;
     this.jadeTemplateEngine = jadeTemplateEngine;
+
+    logger.info("Using base URL: " + baseUrl);
   }
 
   protected void handleCommonLTI(RoutingContext ctx, String courseIdType) {
@@ -64,7 +73,6 @@ public class LtiCoursesHandler extends Handler {
         logger.info("id_token=" + token);
 
         logger.info("absoluteUri=" + ctx.request().absoluteURI());
-        String baseUrl = ctx.request().absoluteURI().split("/lti-courses/deep-link-request")[0];
         logger.info("baseUrl=" + baseUrl);
 
         DecodedJWT jwt;
@@ -73,25 +81,21 @@ public class LtiCoursesHandler extends Handler {
         } catch (JWTVerificationException exception) {
           String error = "Error verifying JWT: " + exception.toString();
           logger.error(error);
-
-          ctx.response().setStatusCode(400);
-          ctx.response().end(error);
+          badRequest(ctx, error);
           return;
         }
 
         LTIDeepLinkSettingsClaim deepLinkSettingsClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings").as(LTIDeepLinkSettingsClaim.class);
         LTIContextClaim contextClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/context").as(LTIContextClaim.class);
 
-        String courseTitle = contextClaim.getTitle();
-        logger.info("Class Title: " + courseTitle);
+        String courseTitle = contextClaim.title;
+        logger.info("Class Requested in LTI Context Claim: " + courseTitle);
 
         String query = "";
         try {
           query = "query=(" + courseIdType + "=\"" + URLEncoder.encode(courseTitle, "UTF-8") + "\")";
         } catch (Exception exception) {
-          logger.error(exception.toString());
-          ctx.response().setStatusCode(400);
-          ctx.response().end(exception.toString());
+          badRequest(ctx, "Failed to encode requested course title of " + courseTitle);
           return;
         }
 
@@ -107,46 +111,40 @@ public class LtiCoursesHandler extends Handler {
               }
 
               resp.bodyHandler(response -> {
-                String courseListingId;
-                String courseName;
+                JsonObject course;
 
                 try {
-                  JsonObject modCoursesResponseJson = new JsonObject(response.toString());
-                  JsonArray courses = modCoursesResponseJson.getJsonArray("courses");
-                  JsonObject course = courses.getJsonObject(0);
-                  courseListingId = course.getString("courseListingId");
-                  courseName = course.getString("name");
+                  course = new JsonObject(response.toString())
+                    .getJsonArray("courses")
+                    .getJsonObject(0);
                 } catch (Exception exception) {
-                  logger.error(exception.toString());
-                  ctx.response().setStatusCode(400);
-                  ctx.response().end(exception.toString() + " - That course can't be found in the Course Reserves app!");
+                  logger.error(courseNotFound);
+                  notFound(ctx, courseNotFound);
                   return;
                 }
 
-                JsonObject htmlDeepLinkJson = new JsonObject()
+                String courseListingId = course.getString("courseListingId");
+
+                JsonObject term = course
+                  .getJsonObject("courseListingObject", new JsonObject())
+                  .getJsonObject("termObject", new JsonObject());
+
+                JsonObject deepLinkVars = new JsonObject()
                   .put("id", courseListingId)
-                  .put("startDate", "2019-09-05")
-                  .put("endDate", false)
+                  .put("startDate", term.getString("startDate", "1970-01-01"))
+                  .put("endDate", term.getString("endDate", "3000-01-01"))
                   .put("reservesUrl", baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx));
 
-                logger.info("Course listing id: " + courseListingId);
+                logger.info("Course listing ID: " + courseListingId);
                 logger.info("Reserves URL: " + baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx));
 
-                jadeTemplateEngine.render(htmlDeepLinkJson, "templates/HTMLDeepLink", htmlDeepLink -> {
-                  // if (!htmlDeepLink.succeeded()) {
-                  //   String error = "Failed to render HTMLDeepLink template: " + htmlDeepLink.cause();
-                  //   logger.error(error);
-                  //   ctx.response().setStatusCode(400);
-                  //   ctx.response().end(error);
-                  //   return;
-                  // }
-
-                  logger.info("DeepLinkHTML: " + htmlDeepLink.result());
+                jadeTemplateEngine.render(deepLinkVars, "templates/HTMLDeepLink", deepLink -> {
+                  logger.info("DeepLinkHTML: " + deepLink.result());
 
                   HashMap<String,String> link = new HashMap<String,String>();
                   link.put("type", "html");
                   link.put("title", deepLinkSettingsClaim.title);
-                  link.put("html", htmlDeepLink.result().toString());
+                  link.put("html", deepLink.result().toString());
 
                   ArrayList<HashMap<String, String>> links = new ArrayList<HashMap<String, String>>();
                   links.add(link);
@@ -165,15 +163,14 @@ public class LtiCoursesHandler extends Handler {
                     .sign(algorithm);
 
                   JsonObject responseFormObject = new JsonObject()
-                    .put("deepLinkResponseUrl", deepLinkSettingsClaim.deep_link_return_url)
+                    .put("deepLinkReturnUrl", deepLinkSettingsClaim.deep_link_return_url)
                     .put("jwt", deepLinkResponse);
 
                   jadeTemplateEngine.render(responseFormObject, "templates/DeepLinkResponseForm", deepLinkResponseForm -> {
                     if (!deepLinkResponseForm.succeeded()) {
                       String error = "Failed to render DeepLinkResponseForm template: " + deepLinkResponseForm.cause();
                       logger.error(error);
-                      ctx.response().setStatusCode(400);
-                      ctx.response().end(error);
+                      internalServerError(ctx, error);
                       return;
                     }
 
@@ -181,8 +178,6 @@ public class LtiCoursesHandler extends Handler {
                     ctx.response().end(deepLinkResponseForm.result());
                   });
                 });
-
-                logger.info("Found " + courseListingId + ": " + courseName);
               });
             },
             t -> handleProxyException(ctx, t)

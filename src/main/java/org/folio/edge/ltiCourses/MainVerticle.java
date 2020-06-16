@@ -1,17 +1,14 @@
 package org.folio.edge.ltiCourses;
 
-import org.apache.log4j.Logger;
-
-import static org.folio.edge.ltiCourses.utils.PemUtils.readPrivateKeyFromFile;
-import static org.folio.edge.ltiCourses.utils.PemUtils.readPublicKeyFromFile;
 import static org.folio.edge.ltiCourses.Constants.LTI_PLATFORM_PUBLIC_KEY_FILE;
 import static org.folio.edge.ltiCourses.Constants.LTI_TOOL_PRIVATE_KEY_FILE;
 import static org.folio.edge.ltiCourses.Constants.LTI_TOOL_PUBLIC_KEY_FILE;
-import static org.folio.edge.ltiCourses.Constants.TLS_CERT_FILE;
-import static org.folio.edge.ltiCourses.Constants.TLS_KEY_FILE;
+import static org.folio.edge.ltiCourses.utils.PemUtils.readPrivateKeyFromFile;
+import static org.folio.edge.ltiCourses.utils.PemUtils.readPublicKeyFromFile;
 
-import org.folio.edge.ltiCourses.TLSVerticle;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
@@ -19,22 +16,17 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 
+import org.apache.log4j.Logger;
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.EdgeVerticle;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
-import io.vertx.core.net.PemKeyCertOptions;
 
-public class MainVerticle extends TLSVerticle {
+public class MainVerticle extends EdgeVerticle {
 
   private static final Logger logger = Logger.getLogger(MainVerticle.class);
 
@@ -42,32 +34,28 @@ public class MainVerticle extends TLSVerticle {
     super();
   }
 
-  @Override
-  public void setServerOptions(HttpServerOptions options) {
-    if (System.getProperty(TLS_CERT_FILE) != null && System.getProperty(TLS_CERT_FILE) != null) {
-      logger.info("Running with SSL via Cert at: " + System.getProperty(TLS_CERT_FILE));
-      logger.info("Running with SSL via Key at: " + System.getProperty(TLS_KEY_FILE));
+  private String readPublicToolKey() {
+    final String toolPublicKeyFile = System.getProperty(LTI_TOOL_PUBLIC_KEY_FILE);
+    logger.info("Using LTI Tool Public Key File: " + toolPublicKeyFile);
 
-      options
-        .setSsl(true)
-        .setPemKeyCertOptions(
-          new PemKeyCertOptions()
-            .setCertPath(System.getProperty(TLS_CERT_FILE))
-            .setKeyPath(System.getProperty(TLS_KEY_FILE))
-        );
+    // Save off the public key so we can send it if requested.
+    String toolPublicKey = "";
+    try {
+      toolPublicKey = new String(Files.readAllBytes(Paths.get(toolPublicKeyFile)));
+    } catch (IOException e) {
+      logger.error("Failed to read tool public key from file");
     }
+
+    return toolPublicKey;
   }
 
-  @Override
-  public Router defineRoutes() {
+  private Algorithm createJwtAlgorithm() {
     // Set up the JWT algorithm by collecting our keys and initing.
     final String platformPublicKeyFile = System.getProperty(LTI_PLATFORM_PUBLIC_KEY_FILE);
     final String toolPrivateKeyFile = System.getProperty(LTI_TOOL_PRIVATE_KEY_FILE);
-    final String toolPublicKeyFile = System.getProperty(LTI_TOOL_PUBLIC_KEY_FILE);
 
     logger.info("Using LTI Platform Public Key File: " + platformPublicKeyFile);
     logger.info("Using LTI Tool Private Key File: " + toolPrivateKeyFile);
-    logger.info("Using LTI Tool Public Key File: " + toolPublicKeyFile);
 
     final RSAPublicKey platformPublicKey;
     try {
@@ -85,17 +73,14 @@ public class MainVerticle extends TLSVerticle {
       return null;
     }
 
-    final Algorithm algorithm = Algorithm.RSA256(platformPublicKey, toolPrivateKey);
+    return Algorithm.RSA256(platformPublicKey, toolPrivateKey);
+  }
 
-    JWTVerifier jwtVerifier = JWT.require(algorithm).build();
-
-    // Save off the public key so we can send it if requested.
-    String toolPublicKey = "";
-    try {
-      toolPublicKey = new String(Files.readAllBytes(Paths.get(toolPublicKeyFile)));
-    } catch (IOException e) {
-      logger.error("Failed to read tool public key from file");
-    }
+  @Override
+  public Router defineRoutes() {
+    final String toolPublicKey = readPublicToolKey();
+    final Algorithm algorithm = createJwtAlgorithm();
+    final JWTVerifier jwtVerifier = JWT.require(algorithm).build();
 
     // Init the Jade templating engine
     JadeTemplateEngine jadeTemplateEngine = JadeTemplateEngine.create(vertx);
