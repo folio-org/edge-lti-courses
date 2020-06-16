@@ -21,7 +21,7 @@ First, a course is found via LTI:
 1. We verify that JWT using the stored copy of the platform's public key.
 1. We parse the JWT and find the course (context) that generated this request.
 1. We look up that course in mod-courses via Okapi and find it's `id`.
-1. We send a Deep Linking Response that contains a [link of type HTML fragment](https://www.imsglobal.org/spec/lti-dl/v2p0/#html-fragment). The fragment contains Javascript which contains the course's `id` and the URL of this module. (This is not yet implemented)
+1. We send a Deep Linking Response that contains a [link of type HTML fragment](https://www.imsglobal.org/spec/lti-dl/v2p0/#html-fragment). The fragment contains Javascript which contains the course's `id` and the URL of this module.
 1. The fragment is injected into the course page by the LMS.
 
 Now that HTML has been placed into the LMS course site, we can dynamically fetch the course reserves each time the site is loaded.
@@ -64,7 +64,11 @@ Institutional users should be granted the following permission in order to use t
 
 ## Configuration
 
-See [edge-common](https://github.com/folio-org/edge-common) for a description of how configuration works. Additionally, the
+See [edge-common](https://github.com/folio-org/edge-common) for a description of how configuration works.
+
+Additionally, the module has other configuration parameters that can be set. Some are defined in the LTI RSA256 section. Others include:
+
+- `base_url`: The URL at which this edge module will be listening. This is used when sending back the HTML fragment that contains information about where to fetch the list of reserves. This is required to handle scenarios where the module is behind reverse proxies, load balancers, TLS handlers, etc.
 
 ## Additional information
 
