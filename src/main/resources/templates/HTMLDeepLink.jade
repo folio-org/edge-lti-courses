@@ -1,8 +1,9 @@
 html
   div(id!='course-reserves-#{id}')
   script(type!='text/javascript').
-    const courseStartDate = #{startDate};
-    const courseEndDate = #{endDate};
+    const now = new Date();
+    const courseStartDate = new Date('#{startDate}');
+    const courseEndDate = new Date('#{endDate}');
     window.onLoad(() => {
       fetch('#{reservesUrl}')
         .then(response => response.json())
@@ -14,12 +15,20 @@ html
           }
 
           const ul = document.createElement('ul');
-          const listItems = json.reserves.map(r => {
+          json.reserves.forEach(r => {
+            const itemStartDate = r.startDate ? new Date(r.startDate) : courseStartDate;
+            const itemEndDate = r.endDate ? new Date(r.endDate) : courseEndDate;
+
+            const startDate = itemStartDate > courseStartDate ? itemStartDate : courseStartDate;
+            const endDate = itemEndDate > courseEndDate ? itemEndDate : courseEndDate;
+
+            if (now < startDate || now > endDate) return;
+
             const item = r.copiedItem;
             const li = document.createElement('li');
             li.innerHTML = `${item.name}: ${item.barcode}`;
+            ul.append(item);
           });
-          ul.append(listItems);
           target.append(ul);
         });
     })
