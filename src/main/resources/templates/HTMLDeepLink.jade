@@ -16,11 +16,11 @@ html
 
           const ul = document.createElement('ul');
           json.reserves.forEach(r => {
-            const itemStartDate = r.startDate ? new Date(r.startDate) : courseStartDate;
-            const itemEndDate = r.endDate ? new Date(r.endDate) : courseEndDate;
+            const startDate = r.startDate ? new Date(r.startDate) : courseStartDate;
+            const endDate = r.endDate ? new Date(r.endDate) : courseEndDate;
 
-            const startDate = itemStartDate > courseStartDate ? itemStartDate : courseStartDate;
-            const endDate = itemEndDate > courseEndDate ? itemEndDate : courseEndDate;
+            startDate.setHours(23, 59, 59);
+            endDate.setHours(23, 59, 59);
 
             if (now < startDate || now > endDate) return;
 
