@@ -1,6 +1,6 @@
 package org.folio.edge.ltiCourses.utils;
 
-public class LTIDeepLinkSettingsClaim {
+public class LtiDeepLinkSettingsClaim {
   public String accept_media_types;
   public Boolean accept_multiple;
   public String[] accept_presentation_document_targets;

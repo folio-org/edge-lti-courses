@@ -2,19 +2,24 @@ package org.folio.edge.ltiCourses;
 
 import java.net.URLEncoder;
 import java.time.Instant;
+import java.security.interfaces.RSAPrivateKey;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
+import org.folio.rest.client.ConfigurationsClient;
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.Handler;
 import org.folio.edge.core.security.SecureStore;
-import org.folio.edge.ltiCourses.utils.LTIContextClaim;
-import org.folio.edge.ltiCourses.utils.LTIDeepLinkSettingsClaim;
+import org.folio.edge.ltiCourses.utils.LtiContextClaim;
+import org.folio.edge.ltiCourses.utils.LtiDeepLinkSettingsClaim;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClient;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
+import org.folio.edge.ltiCourses.utils.LtiPlatformClient;
+import org.folio.edge.ltiCourses.utils.LtiPlatformClientFactory;
 
 import static org.folio.edge.ltiCourses.Constants.BASE_URL;
 import static org.folio.edge.ltiCourses.Constants.RESERVES_NOT_FOUND_MESSAGE;
@@ -26,13 +31,14 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
 
 public class LtiCoursesHandler extends Handler {
-
-  protected Algorithm algorithm;
+  protected LtiPlatformClientFactory pcf;
+  protected RSAPrivateKey privateKey;
   protected JadeTemplateEngine jadeTemplateEngine;
   protected JWTVerifier jwtVerifier;
   protected String toolPublicKey;
@@ -48,22 +54,22 @@ public class LtiCoursesHandler extends Handler {
     SecureStore secureStore,
     LtiCoursesOkapiClientFactory ocf,
     ApiKeyHelper apiKeyHelper,
-    Algorithm algorithm,
+    LtiPlatformClientFactory pcf,
+    RSAPrivateKey privateKey,
     JWTVerifier jwtVerifier,
-    String toolPublicKey,
     JadeTemplateEngine jadeTemplateEngine
   ) {
     super(secureStore, ocf, apiKeyHelper);
 
-    this.algorithm = algorithm;
+    this.pcf = pcf;
+    this.privateKey = privateKey;
     this.jwtVerifier = jwtVerifier;
-    this.toolPublicKey = toolPublicKey;
     this.jadeTemplateEngine = jadeTemplateEngine;
 
     logger.info("Using base URL: " + baseUrl);
   }
 
-  protected void handleCommonLTI(RoutingContext ctx, String courseIdType) {
+  protected void handleCommonLTI(RoutingContext ctx, String courseIdType, Boolean isDeepLinkingRoute) {
     handleCommon(ctx,
       new String[] {},
       new String[] {},
@@ -85,8 +91,8 @@ public class LtiCoursesHandler extends Handler {
           return;
         }
 
-        LTIDeepLinkSettingsClaim deepLinkSettingsClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings").as(LTIDeepLinkSettingsClaim.class);
-        LTIContextClaim contextClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/context").as(LTIContextClaim.class);
+        LtiDeepLinkSettingsClaim deepLinkSettingsClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings").as(LtiDeepLinkSettingsClaim.class);
+        LtiContextClaim contextClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/context").as(LtiContextClaim.class);
 
         String courseTitle = contextClaim.title;
         logger.info("Class Requested in LTI Context Claim: " + courseTitle);
@@ -160,7 +166,7 @@ public class LtiCoursesHandler extends Handler {
                     .withClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id", jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id").asString())
                     .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/data", deepLinkSettingsClaim.data)
                     .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/content_items", links)
-                    .sign(algorithm);
+                    .sign(privateKey);
 
                   JsonObject responseFormObject = new JsonObject()
                     .put("deepLinkReturnUrl", deepLinkSettingsClaim.deep_link_return_url)
@@ -186,16 +192,104 @@ public class LtiCoursesHandler extends Handler {
     );
   }
 
+  protected void handleOidcLoginInit(RoutingContext ctx) {
+    handleCommon(ctx,
+      new String[] {},
+      new String[] {},
+      (client, params) -> {
+        MultiMap attributes = ctx.request().formAttributes();
+        String iss = attributes.get("iss");
+        String login_hint = attributes.get("login_hint");
+        String lti_message_hint = attributes.get("lti_message_hint");
+        String target_link_uri = attributes.get("target_link_uri");
+
+        logger.info("iss=" + iss);
+
+        // look up the redirect url via the iss -> authURL mapping we'll store in mod-configuration
+        // for now, hardcode to the reference platform at https://lti-ri.imsglobal.org/platforms/1123/authorizations/new
+        ((LtiCoursesOkapiClient) client).getConfigurations(
+          resp -> {
+            if (resp.statusCode() != 200) {
+              logger.error(resp.statusCode() + ": " + resp.statusMessage());
+              ctx.response().setStatusCode(resp.statusCode());
+              ctx.response().end(resp.statusMessage());
+              return;
+            }
+
+            resp.bodyHandler(response -> {
+              String platformOidcAuthUrl = "";
+              String clientId = "";
+
+              JsonArray configs = new JsonObject(response.toString()).getJsonArray("configs");
+              Iterator<Object> i = configs.iterator();
+              while (i.hasNext()) {
+                JsonObject config = ((JsonObject) i.next());
+
+                if (config.getString("configName") == "platformOidcAuthUrl") {
+                  platformOidcAuthUrl = config.getString("value");
+                }
+
+                if (config.getString("configName") == "clientId") {
+                  clientId = config.getString("value");
+                }
+              }
+
+              String redirectUri = target_link_uri;
+              try {
+                redirectUri = URLEncoder.encode(target_link_uri, "UTF-8");
+              } catch (Exception e) {
+                logger.error("Can't encode to UTF-8???");
+              }
+
+              String authRequestUrl = platformOidcAuthUrl + "?";
+              authRequestUrl += "client_id=" + clientId;
+              authRequestUrl += "&login_hint=" + login_hint;
+              authRequestUrl += "&lti_message_hint=" + lti_message_hint;
+              authRequestUrl += "&nonce=mynonce";
+              authRequestUrl += "&prompt=none";
+              authRequestUrl += "&redirect_uri=" + redirectUri;
+              authRequestUrl += "&response_mode=form_post";
+              authRequestUrl += "&response_type=id_token";
+              authRequestUrl += "&scope=openid";
+              authRequestUrl += "&state=mystate";
+
+              ctx.response()
+                .setStatusCode(302)
+                .putHeader("location", authRequestUrl)
+                .end();
+
+
+              // pcf.getLtiPlatformClient().get(
+              //   authRequestUrl,
+              //   authResp -> {
+
+              //   },
+              //   t -> handleProxyException(ctx, t)
+              // );
+
+
+            });
+          },
+          t -> handleProxyException(ctx, t)
+        );
+      }
+    );
+  }
+
+  protected void handleRequest(RoutingContext ctx) {
+    handleCommonLTI(ctx, "courseNumber", false);
+  }
+
   protected void handleDeepLinkRequestCourseNumber(RoutingContext ctx) {
-    handleCommonLTI(ctx, "courseNumber");
+    handleCommonLTI(ctx, "courseNumber", true);
   }
 
   protected void handleDeepLinkRequestCourseExternalId(RoutingContext ctx) {
-    handleCommonLTI(ctx, "courseListing.externalId");
+    handleCommonLTI(ctx, "courseListing.externalId", true);
   }
 
   protected void handleDeepLinkRequestCourseRegistrarId(RoutingContext ctx) {
-    handleCommonLTI(ctx, "courseListing.registrarId");
+    handleCommonLTI(ctx, "courseListing.registrarId", true);
   }
 
   protected void handleGetReservesById(RoutingContext ctx) {
@@ -214,7 +308,7 @@ public class LtiCoursesHandler extends Handler {
     );
   }
 
-  protected void handleGetPublicKey(RoutingContext ctx) {
+  protected void handleGetJWKS(RoutingContext ctx) {
     handleCommon(ctx,
       new String[] {},
       new String[] {},

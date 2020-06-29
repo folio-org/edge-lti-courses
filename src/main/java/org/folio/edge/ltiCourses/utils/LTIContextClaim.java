@@ -1,6 +1,6 @@
 package org.folio.edge.ltiCourses.utils;
 
-public class LTIContextClaim {
+public class LtiContextClaim {
   public String id;
   public String label;
   public String title;

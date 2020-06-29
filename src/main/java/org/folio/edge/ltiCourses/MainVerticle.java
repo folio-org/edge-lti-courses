@@ -9,6 +9,9 @@ import static org.folio.edge.ltiCourses.utils.PemUtils.readPublicKeyFromFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
@@ -20,6 +23,7 @@ import org.apache.log4j.Logger;
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.EdgeVerticle;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
+import org.folio.edge.ltiCourses.utils.LtiPlatformClientFactory;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
@@ -32,21 +36,6 @@ public class MainVerticle extends EdgeVerticle {
 
   public MainVerticle() {
     super();
-  }
-
-  private String readPublicToolKey() {
-    final String toolPublicKeyFile = System.getProperty(LTI_TOOL_PUBLIC_KEY_FILE);
-    logger.info("Using LTI Tool Public Key File: " + toolPublicKeyFile);
-
-    // Save off the public key so we can send it if requested.
-    String toolPublicKey = "";
-    try {
-      toolPublicKey = new String(Files.readAllBytes(Paths.get(toolPublicKeyFile)));
-    } catch (IOException e) {
-      logger.error("Failed to read tool public key from file");
-    }
-
-    return toolPublicKey;
   }
 
   private Algorithm createJwtAlgorithm() {
@@ -76,9 +65,20 @@ public class MainVerticle extends EdgeVerticle {
     return Algorithm.RSA256(platformPublicKey, toolPrivateKey);
   }
 
+  final private KeyPair generateRSAKeyPair() {
+    try {
+      KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+      kpg.initialize(2048);
+      return kpg.generateKeyPair();
+    } catch (NoSuchAlgorithmException e) {
+      logger.error("Couldn't find RSA algorithm to generate key pair");
+      return null;
+    }
+  }
+
   @Override
   public Router defineRoutes() {
-    final String toolPublicKey = readPublicToolKey();
+    final KeyPair toolKeyPair = generateRSAKeyPair();
     final Algorithm algorithm = createJwtAlgorithm();
     final JWTVerifier jwtVerifier = JWT.require(algorithm).build();
 
@@ -92,23 +92,40 @@ public class MainVerticle extends EdgeVerticle {
         reqTimeoutMs
     );
 
+    final LtiPlatformClientFactory pcf = new LtiPlatformClientFactory(
+      vertx,
+      reqTimeoutMs
+    );
+
     final ApiKeyHelper apiKeyHelper = new ApiKeyHelper("PARAM");
+
     final LtiCoursesHandler ltiCoursesHandler = new LtiCoursesHandler(
       secureStore,
       ocf,
       apiKeyHelper,
-      algorithm,
+      pcf,
+      (RSAPrivateKey)toolKeyPair.getPrivate(),
       jwtVerifier,
-      toolPublicKey,
       jadeTemplateEngine
     );
 
-    final Router router = Router.router(vertx);
+    final JwksHandler jwksHandler = new JwksHandler((RSAPublicKey)toolKeyPair.getPublic());
+
+    /// Set up the OIDC stuff
+    final OidcHandler oidcHandler = new OidcHandler(pcf);
 
     // Finally, define our routes.
+    final Router router = Router.router(vertx);
     router.route().handler(BodyHandler.create());
     router.route(HttpMethod.GET, "/admin/health").handler(this::handleHealthCheck);
+    router.route(HttpMethod.GET, "/lti-courses/.well-known/jwks.json").handler(jwksHandler::handleGetJWKS);
 
+    router.route(HttpMethod.POST, "/lti-courses/oidc-login-init").handler(ltiCoursesHandler::handleOidcLoginInit);
+    router.route(HttpMethod.POST, "/lti-courses/launches").handler(ltiCoursesHandler::handleRequest);
+
+    //
+    //
+    //
     // Takes an LTI DeepLinkRequest containing a course ID and returns embeddable HTML
     // that contains an endpoint for fetching the reserves for that course.
     router.route(HttpMethod.POST, "/lti-courses/deep-link-request").handler(ltiCoursesHandler::handleDeepLinkRequestCourseNumber);
@@ -117,8 +134,6 @@ public class MainVerticle extends EdgeVerticle {
 
     // The endpoint returned in the LTI DeepLinkResponse.
     router.route(HttpMethod.GET, "/lti-courses/reserves/:courseId").handler(ltiCoursesHandler::handleGetReservesById);
-
-    router.route(HttpMethod.GET, "/lti-courses/public-key").handler(ltiCoursesHandler::handleGetPublicKey);
     return router;
   }
 }

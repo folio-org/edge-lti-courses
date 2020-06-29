@@ -9,6 +9,8 @@ public class Constants {
 
   public static final String LTI_PLATFORM_PUBLIC_KEY = "lti_platform_public_key";
 
+  public static final String JWT_KID = "folio_lti_courses";
+
   public static final String BASE_URL = "base_url";
 
   public static final String RESERVES_NOT_FOUND_MESSAGE = "reserves_not_found_message";

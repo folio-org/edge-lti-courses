@@ -1,5 +1,6 @@
 package org.folio.edge.ltiCourses.utils;
 
+import org.apache.http.client.ResponseHandler;
 import org.apache.log4j.Logger;
 
 import org.folio.edge.core.utils.OkapiClient;
@@ -16,6 +17,30 @@ public class LtiCoursesOkapiClient extends OkapiClient {
 
   protected LtiCoursesOkapiClient(Vertx vertx, String okapiURL, String tenant, long timeout) {
     super(vertx, okapiURL, tenant, timeout);
+  }
+
+  public void getConfigurations(
+    Handler<HttpClientResponse> responseHandler,
+    Handler<Throwable> exceptionHandler
+  ) {
+    get(
+      okapiURL + "/configurations/entries?limit=100&query=(module=EDGELTICOURSES)",
+      tenant,
+      responseHandler,
+      exceptionHandler
+    );
+  }
+
+  public void getPlatformOidcAuthUrl(
+    Handler<HttpClientResponse> responseHandler,
+    Handler<Throwable> exceptionHandler
+  ) {
+    get(
+      okapiURL + "/configurations/entries?limit=100&query=(module=EDGELTICOURSES+and+configName=platformOidcAuthUrl)",
+      tenant,
+      responseHandler,
+      exceptionHandler
+    );
   }
 
   public void getCourse(
