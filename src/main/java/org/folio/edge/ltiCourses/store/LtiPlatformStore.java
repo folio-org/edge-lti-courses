@@ -23,8 +23,7 @@ public class LtiPlatformStore {
   private LtiPlatform platform;
 
   private LtiPlatformStore(LtiCoursesOkapiClientFactory ocf) {
-    ocf.getOkapiClient(tenant)
-
+    // ocf.getOkapiClient(tenant);
   }
 
   /**

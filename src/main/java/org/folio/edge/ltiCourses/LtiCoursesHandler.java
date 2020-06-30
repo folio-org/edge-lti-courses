@@ -50,7 +50,6 @@ public class LtiCoursesHandler extends Handler {
   protected LtiPlatformClientFactory pcf;
   protected RSAPrivateKey privateKey;
   protected JadeTemplateEngine jadeTemplateEngine;
-  protected JWTVerifier jwtVerifier;
   protected String toolPublicKey;
 
   protected String baseUrl = System.getProperty(BASE_URL);
@@ -66,14 +65,12 @@ public class LtiCoursesHandler extends Handler {
     ApiKeyHelper apiKeyHelper,
     LtiPlatformClientFactory pcf,
     RSAPrivateKey privateKey,
-    JWTVerifier jwtVerifier,
     JadeTemplateEngine jadeTemplateEngine
   ) {
     super(secureStore, ocf, apiKeyHelper);
 
     this.pcf = pcf;
     this.privateKey = privateKey;
-    this.jwtVerifier = jwtVerifier;
     this.jadeTemplateEngine = jadeTemplateEngine;
 
     logger.info("Using base URL: " + baseUrl);
@@ -103,10 +100,11 @@ public class LtiCoursesHandler extends Handler {
               LtiPlatform platform = new LtiPlatform(new JsonObject(confBody.toString()));
 
               // Fetch the JWK
-              Jwk jwk;
+              RSAPublicKey platformPublicKey;
               try {
                 JwkProvider jwkProvider = new UrlJwkProvider(new URL(platform.jwksUrl));
-                jwk = jwkProvider.get(jwt.getKeyId());
+                Jwk jwk = jwkProvider.get(jwt.getKeyId());
+                platformPublicKey = (RSAPublicKey) jwk.getPublicKey();
               } catch (Exception e) {
                 logger.error(e.getLocalizedMessage());
                 badRequest(ctx, e.getLocalizedMessage());
@@ -114,7 +112,7 @@ public class LtiCoursesHandler extends Handler {
               }
 
               // Validate the JWT
-              Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), privateKey);
+              Algorithm algorithm = Algorithm.RSA256(platformPublicKey, privateKey);
               algorithm.verify(jwt);
 
               if (jwt.getIssuer() != platform.issuer) {
@@ -202,7 +200,7 @@ public class LtiCoursesHandler extends Handler {
                           .withClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id", jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id").asString())
                           .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/data", deepLinkSettingsClaim.data)
                           .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/content_items", links)
-                          .sign(privateKey);
+                          .sign(algorithm);
 
                         JsonObject responseFormObject = new JsonObject()
                           .put("deepLinkReturnUrl", deepLinkSettingsClaim.deep_link_return_url)

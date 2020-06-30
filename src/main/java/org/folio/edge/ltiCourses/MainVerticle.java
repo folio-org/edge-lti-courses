@@ -12,8 +12,10 @@ import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.RSAPublicKeySpec;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
@@ -22,8 +24,6 @@ import com.auth0.jwt.algorithms.Algorithm;
 import org.apache.log4j.Logger;
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.EdgeVerticle;
-import org.folio.edge.core.cache.Cache;
-import org.folio.edge.ltiCourses.cache.ConfigCache;
 import org.folio.edge.ltiCourses.cache.OidcStateCache;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
 import org.folio.edge.ltiCourses.utils.LtiPlatformClientFactory;
@@ -41,52 +41,43 @@ public class MainVerticle extends EdgeVerticle {
     super();
   }
 
-  private Algorithm createJwtAlgorithm() {
-    // Set up the JWT algorithm by collecting our keys and initing.
-    final String platformPublicKeyFile = System.getProperty(LTI_PLATFORM_PUBLIC_KEY_FILE);
+  final private KeyPair getToolKeyPair() {
     final String toolPrivateKeyFile = System.getProperty(LTI_TOOL_PRIVATE_KEY_FILE);
+    final String toolPublicKeyFile = System.getProperty(LTI_TOOL_PUBLIC_KEY_FILE);
 
-    logger.info("Using LTI Platform Public Key File: " + platformPublicKeyFile);
-    logger.info("Using LTI Tool Private Key File: " + toolPrivateKeyFile);
-
-    final RSAPublicKey platformPublicKey;
-    try {
-      platformPublicKey = (RSAPublicKey) readPublicKeyFromFile(platformPublicKeyFile, "RSA");
-    } catch (Exception e) {
-      logger.error("Failed to read platform public key from file.");
-      return null;
+    if (toolPrivateKeyFile.isEmpty()) {
+      // Generate our own keys
+      try {
+        logger.info("Generating our own LTI Tool RSA key pair");
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(2048);
+        return kpg.generateKeyPair();
+      } catch (NoSuchAlgorithmException e) {
+        logger.error("Couldn't find RSA algorithm to generate key pair");
+        return null;
+      }
+    } else {
+      // Use the keys stored locally.
+      logger.info("Using LTI Tool Private Key File: " + toolPrivateKeyFile);
+      logger.info("Using LTI Tool Public Key File: " + toolPublicKeyFile);
+      try {
+        return new KeyPair(
+          readPublicKeyFromFile(toolPublicKeyFile, "RSA"),
+          readPrivateKeyFromFile(toolPrivateKeyFile, "RSA")
+        );
+      } catch (Exception e) {
+        logger.error("Failed to read tool private key from file.");
+        return null;
+      }
     }
 
-    final RSAPrivateKey toolPrivateKey;
-    try {
-      toolPrivateKey = (RSAPrivateKey) readPrivateKeyFromFile(toolPrivateKeyFile, "RSA");
-    } catch (Exception e) {
-      logger.error("Failed to read tool private key from file.");
-      return null;
-    }
-
-    return Algorithm.RSA256(platformPublicKey, toolPrivateKey);
-  }
-
-  final private KeyPair generateRSAKeyPair() {
-    try {
-      KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-      kpg.initialize(2048);
-      return kpg.generateKeyPair();
-    } catch (NoSuchAlgorithmException e) {
-      logger.error("Couldn't find RSA algorithm to generate key pair");
-      return null;
-    }
   }
 
   @Override
   public Router defineRoutes() {
-    ConfigCache.initialize(30000, 30000, 1000);
     OidcStateCache.initialize(30000, 30000, 10000);
 
-    final KeyPair toolKeyPair = generateRSAKeyPair();
-    final Algorithm algorithm = createJwtAlgorithm();
-    final JWTVerifier jwtVerifier = JWT.require(algorithm).build();
+    final KeyPair toolKeyPair = getToolKeyPair();
 
     // Init the Jade templating engine
     JadeTemplateEngine jadeTemplateEngine = JadeTemplateEngine.create(vertx);
@@ -111,14 +102,10 @@ public class MainVerticle extends EdgeVerticle {
       apiKeyHelper,
       pcf,
       (RSAPrivateKey)toolKeyPair.getPrivate(),
-      jwtVerifier,
       jadeTemplateEngine
     );
 
     final JwksHandler jwksHandler = new JwksHandler((RSAPublicKey)toolKeyPair.getPublic());
-
-    /// Set up the OIDC stuff
-    // final OidcHandler oidcHandler = new OidcHandler(pcf);
 
     // Finally, define our routes.
     final Router router = Router.router(vertx);
