@@ -15,7 +15,5 @@ public class OidcHandler {
 
   protected void handleOidcLoginInit(RoutingContext ctx) {
     LtiPlatformClient client = pcf.getLtiPlatformClient();
-    client.get()
-
   }
 }

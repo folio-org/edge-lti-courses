@@ -112,7 +112,7 @@ public class MainVerticle extends EdgeVerticle {
     final JwksHandler jwksHandler = new JwksHandler((RSAPublicKey)toolKeyPair.getPublic());
 
     /// Set up the OIDC stuff
-    final OidcHandler oidcHandler = new OidcHandler(pcf);
+    // final OidcHandler oidcHandler = new OidcHandler(pcf);
 
     // Finally, define our routes.
     final Router router = Router.router(vertx);

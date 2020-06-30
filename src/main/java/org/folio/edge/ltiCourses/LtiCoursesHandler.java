@@ -18,6 +18,7 @@ import org.folio.edge.ltiCourses.utils.LtiContextClaim;
 import org.folio.edge.ltiCourses.utils.LtiDeepLinkSettingsClaim;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClient;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
+import org.folio.edge.ltiCourses.utils.LtiPlatform;
 import org.folio.edge.ltiCourses.utils.LtiPlatformClient;
 import org.folio.edge.ltiCourses.utils.LtiPlatformClientFactory;
 
@@ -206,7 +207,7 @@ public class LtiCoursesHandler extends Handler {
         logger.info("iss=" + iss);
 
         // look up the redirect url via the iss -> authURL mapping we'll store in mod-configuration
-        // for now, hardcode to the reference platform at https://lti-ri.imsglobal.org/platforms/1123/authorizations/new
+        // for now, hardcode to the Duke Sakai instance at https://https://sakai-test.duke.edu/
         ((LtiCoursesOkapiClient) client).getConfigurations(
           resp -> {
             if (resp.statusCode() != 200) {
@@ -217,22 +218,7 @@ public class LtiCoursesHandler extends Handler {
             }
 
             resp.bodyHandler(response -> {
-              String platformOidcAuthUrl = "";
-              String clientId = "";
-
-              JsonArray configs = new JsonObject(response.toString()).getJsonArray("configs");
-              Iterator<Object> i = configs.iterator();
-              while (i.hasNext()) {
-                JsonObject config = ((JsonObject) i.next());
-
-                if (config.getString("configName") == "platformOidcAuthUrl") {
-                  platformOidcAuthUrl = config.getString("value");
-                }
-
-                if (config.getString("configName") == "clientId") {
-                  clientId = config.getString("value");
-                }
-              }
+              LtiPlatform platform = new LtiPlatform(new JsonObject(response.toString()));
 
               String redirectUri = target_link_uri;
               try {
@@ -241,8 +227,8 @@ public class LtiCoursesHandler extends Handler {
                 logger.error("Can't encode to UTF-8???");
               }
 
-              String authRequestUrl = platformOidcAuthUrl + "?";
-              authRequestUrl += "client_id=" + clientId;
+              String authRequestUrl = platform.oidcAuthUrl + "?";
+              authRequestUrl += "client_id=" + platform.clientId;
               authRequestUrl += "&login_hint=" + login_hint;
               authRequestUrl += "&lti_message_hint=" + lti_message_hint;
               authRequestUrl += "&nonce=mynonce";
