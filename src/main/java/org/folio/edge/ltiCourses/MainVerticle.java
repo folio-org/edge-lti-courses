@@ -116,9 +116,6 @@ public class MainVerticle extends EdgeVerticle {
     router.route(HttpMethod.POST, "/lti-courses/oidc-login-init").handler(ltiCoursesHandler::handleOidcLoginInit);
     router.route(HttpMethod.POST, "/lti-courses/launches").handler(ltiCoursesHandler::handleRequest);
 
-    //
-    //
-    //
     // Takes an LTI DeepLinkRequest containing a course ID and returns embeddable HTML
     // that contains an endpoint for fetching the reserves for that course.
     router.route(HttpMethod.POST, "/lti-courses/deep-link-request").handler(ltiCoursesHandler::handleDeepLinkRequestCourseNumber);

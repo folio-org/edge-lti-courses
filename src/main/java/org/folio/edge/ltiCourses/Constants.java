@@ -14,4 +14,7 @@ public class Constants {
   public static final String BASE_URL = "base_url";
 
   public static final String RESERVES_NOT_FOUND_MESSAGE = "reserves_not_found_message";
+
+  public static final String LTI_MESSAGE_TYPE_DEEP_LINK_REQUEST = "LtiDeepLinkingRequest";
+  public static final String LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST = "LtiResourceLinkRequest";
 }
