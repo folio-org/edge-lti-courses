@@ -22,6 +22,9 @@ import com.auth0.jwt.algorithms.Algorithm;
 import org.apache.log4j.Logger;
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.EdgeVerticle;
+import org.folio.edge.core.cache.Cache;
+import org.folio.edge.ltiCourses.cache.ConfigCache;
+import org.folio.edge.ltiCourses.cache.OidcStateCache;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
 import org.folio.edge.ltiCourses.utils.LtiPlatformClientFactory;
 
@@ -78,6 +81,9 @@ public class MainVerticle extends EdgeVerticle {
 
   @Override
   public Router defineRoutes() {
+    ConfigCache.initialize(30000, 30000, 1000);
+    OidcStateCache.initialize(30000, 30000, 10000);
+
     final KeyPair toolKeyPair = generateRSAKeyPair();
     final Algorithm algorithm = createJwtAlgorithm();
     final JWTVerifier jwtVerifier = JWT.require(algorithm).build();
