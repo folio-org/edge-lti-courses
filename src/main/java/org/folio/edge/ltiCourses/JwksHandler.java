@@ -25,6 +25,10 @@ public class JwksHandler {
   protected void handleGetJWKS(RoutingContext ctx) {
     logger.info("Handling request for JWKS");
 
+    if (publicKey == null) {
+      ctx.response().setStatusCode(404).end();
+    }
+
     JsonObject jwk = new JsonObject();
     jwk.put("kty", publicKey.getAlgorithm()); // getAlgorithm() returns kty not algorithm
     jwk.put("kid", JWT_KID);

@@ -45,7 +45,7 @@ public class MainVerticle extends EdgeVerticle {
     final String toolPrivateKeyFile = System.getProperty(LTI_TOOL_PRIVATE_KEY_FILE);
     final String toolPublicKeyFile = System.getProperty(LTI_TOOL_PUBLIC_KEY_FILE);
 
-    if (toolPrivateKeyFile.isEmpty()) {
+    if (toolPrivateKeyFile == null || toolPrivateKeyFile.isEmpty()) {
       // Generate our own keys
       try {
         logger.info("Generating our own LTI Tool RSA key pair");
@@ -59,14 +59,23 @@ public class MainVerticle extends EdgeVerticle {
     } else {
       // Use the keys stored locally.
       logger.info("Using LTI Tool Private Key File: " + toolPrivateKeyFile);
-      logger.info("Using LTI Tool Public Key File: " + toolPublicKeyFile);
+
       try {
-        return new KeyPair(
-          readPublicKeyFromFile(toolPublicKeyFile, "RSA"),
-          readPrivateKeyFromFile(toolPrivateKeyFile, "RSA")
-        );
+        // We only _really_ need a private key. The public key just lets us provide a JWKS endpoint.
+        if (toolPublicKeyFile == null || toolPublicKeyFile.isEmpty()) {
+          return new KeyPair(
+            null,
+            readPrivateKeyFromFile(toolPrivateKeyFile, "RSA")
+          );
+        } else {
+          logger.info("Using LTI Tool Public Key File: " + toolPublicKeyFile);
+          return new KeyPair(
+            readPublicKeyFromFile(toolPublicKeyFile, "RSA"),
+            readPrivateKeyFromFile(toolPrivateKeyFile, "RSA")
+          );
+        }
       } catch (Exception e) {
-        logger.error("Failed to read tool private key from file.");
+        logger.error("Failed to read tool key from file: " + e.getLocalizedMessage());
         return null;
       }
     }
@@ -94,7 +103,7 @@ public class MainVerticle extends EdgeVerticle {
       reqTimeoutMs
     );
 
-    final ApiKeyHelper apiKeyHelper = new ApiKeyHelper("PARAM");
+    final ApiKeyHelper apiKeyHelper = new ApiKeyHelper("HEADER,PARAM,PATH");
 
     final LtiCoursesHandler ltiCoursesHandler = new LtiCoursesHandler(
       secureStore,
@@ -113,7 +122,8 @@ public class MainVerticle extends EdgeVerticle {
     router.route(HttpMethod.GET, "/admin/health").handler(this::handleHealthCheck);
     router.route(HttpMethod.GET, "/lti-courses/.well-known/jwks.json").handler(jwksHandler::handleGetJWKS);
 
-    router.route(HttpMethod.POST, "/lti-courses/oidc-login-init").handler(ltiCoursesHandler::handleOidcLoginInit);
+    router.route(HttpMethod.GET, "/lti-courses/oidc-login-init").handler(ltiCoursesHandler::handleOidcLoginInit);
+    router.route(HttpMethod.GET, "/lti-courses/oidc-login-init/:apiKeyPath").handler(ltiCoursesHandler::handleOidcLoginInit);
     router.route(HttpMethod.POST, "/lti-courses/launches").handler(ltiCoursesHandler::handleRequest);
 
     // Takes an LTI DeepLinkRequest containing a course ID and returns embeddable HTML

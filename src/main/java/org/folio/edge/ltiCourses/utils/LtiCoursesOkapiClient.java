@@ -31,18 +31,6 @@ public class LtiCoursesOkapiClient extends OkapiClient {
     );
   }
 
-  public void getPlatformOidcAuthUrl(
-    Handler<HttpClientResponse> responseHandler,
-    Handler<Throwable> exceptionHandler
-  ) {
-    get(
-      okapiURL + "/configurations/entries?limit=100&query=(module=EDGELTICOURSES+and+configName=platformOidcAuthUrl)",
-      tenant,
-      responseHandler,
-      exceptionHandler
-    );
-  }
-
   public void getCourse(
     String query,
     Handler<HttpClientResponse> responseHandler,

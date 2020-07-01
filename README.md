@@ -61,6 +61,7 @@ The LTI platform needs this tool's public key to decode the responses we sign us
 Institutional users should be granted the following permission in order to use this edge API:
 - `course-reserves-storage.courselistings.reserves.collection.get`
 - `course-reserves-storage.courses.collection.get`
+- `configuration.entries.collection.get`
 
 ## Configuration
 

@@ -14,25 +14,26 @@ public class LtiPlatform {
     Iterator<Object> i = configuration.getJsonArray("configs").iterator();
     while (i.hasNext()) {
       JsonObject config = ((JsonObject) i.next());
+      String value = config.getString("value");
 
-      if (config.getString("configName") == "platformIssuer") {
-        issuer = config.getString("value");
-      }
-
-      if (config.getString("configName") == "platformJwksUrl") {
-        jwksUrl = config.getString("value");
-      }
-
-      if (config.getString("configName") == "platformOauthTokenUrl") {
-        oauthTokenUrl = config.getString("value");
-      }
-
-      if (config.getString("configName") == "platformOidcAuthUrl") {
-        oidcAuthUrl = config.getString("value");
-      }
-
-      if (config.getString("configName") == "platformClientId") {
-        clientId = config.getString("value");
+      switch (config.getString("configName")) {
+        case "platformClientId":
+          this.clientId = value;
+          break;
+        case "platformIssuer":
+          this.issuer = value;
+          break;
+        case "platformJwksUrl":
+          this.jwksUrl = value;
+          break;
+        case "platformOauthTokenUrl":
+          this.oauthTokenUrl = value;
+          break;
+        case "platformOidcAuthUrl":
+          this.oidcAuthUrl = value;
+          break;
+        default:
+          break;
       }
     }
   }

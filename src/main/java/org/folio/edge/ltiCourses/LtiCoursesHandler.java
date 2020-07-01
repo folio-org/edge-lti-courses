@@ -117,7 +117,7 @@ public class LtiCoursesHandler extends Handler {
               Algorithm algorithm = Algorithm.RSA256(platformPublicKey, privateKey);
               algorithm.verify(jwt);
 
-              if (jwt.getIssuer() != platform.issuer) {
+              if (!jwt.getIssuer().equals(platform.issuer)) {
                 badRequest(ctx, "JWT 'iss' doesn't match the configured Platform Issuer");
                 return;
               }
@@ -135,7 +135,7 @@ public class LtiCoursesHandler extends Handler {
 
               String memorizedState = OidcStateCache.getInstance().get(nonce);
               String state = attributes.get("state");
-              if (memorizedState != state) {
+              if (!memorizedState.equals(state)) {
                 logger.error("Got new state of: " + state + " but expected: " + memorizedState);
                 badRequest(ctx, "Nonce is invalid, states do not match");
                 return;
@@ -193,7 +193,7 @@ public class LtiCoursesHandler extends Handler {
                       logger.info("Course listing ID: " + courseListingId);
                       logger.info("Reserves URL: " + baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx));
 
-                      if (message_type == LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST) {
+                      if (message_type.equals(LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST)) {
                         ((LtiCoursesOkapiClient) client).getCourseReserves(
                           courseListingId,
                           reservesResp -> {
@@ -210,7 +210,7 @@ public class LtiCoursesHandler extends Handler {
                           },
                           t -> handleProxyException(ctx, t)
                         );
-                      } else if (message_type == LTI_MESSAGE_TYPE_DEEP_LINK_REQUEST) {
+                      } else if (message_type.equals(LTI_MESSAGE_TYPE_DEEP_LINK_REQUEST)) {
                         jadeTemplateEngine.render(deepLinkVars, "templates/HTMLDeepLink", deepLink -> {
                           LtiDeepLinkSettingsClaim deepLinkSettingsClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings").as(LtiDeepLinkSettingsClaim.class);
                           logger.info("DeepLinkHTML: " + deepLink.result());
@@ -269,16 +269,19 @@ public class LtiCoursesHandler extends Handler {
 
   protected void handleOidcLoginInit(RoutingContext ctx) {
     handleCommon(ctx,
-      new String[] {},
-      new String[] {},
+      new String[] {
+        "iss",
+        "login_hint",
+        "target_link_uri"
+      },
+      new String[] {
+        "lti_message_hint"
+      },
       (client, params) -> {
-        MultiMap attributes = ctx.request().formAttributes();
-        String iss = attributes.get("iss");
-        String login_hint = attributes.get("login_hint");
-        String lti_message_hint = attributes.get("lti_message_hint");
-        String target_link_uri = attributes.get("target_link_uri");
-
-        logger.info("iss=" + iss);
+        String iss = params.get("iss");
+        String login_hint = params.get("login_hint");
+        String lti_message_hint = params.get("lti_message_hint");
+        String target_link_uri = params.get("target_link_uri");
 
         // look up the redirect url via the iss -> authURL mapping we'll store in mod-configuration
         // for now, hardcode to the Duke Sakai instance at https://https://sakai-test.duke.edu/
@@ -294,8 +297,9 @@ public class LtiCoursesHandler extends Handler {
             resp.bodyHandler(response -> {
               LtiPlatform platform = new LtiPlatform(new JsonObject(response.toString()));
 
-              if (platform.issuer != iss) {
-                badRequest(ctx, "OIDC 'iss' does not match configured Issuer");
+              if (!platform.issuer.equals(iss)) {
+                logger.error("Got iss=" + iss + " and expected iss=" + platform.issuer);
+                badRequest(ctx, "Configured Issuer does not matched the OIDC 'iss'");
                 return;
               }
 
@@ -313,7 +317,6 @@ public class LtiCoursesHandler extends Handler {
               String authRequestUrl = platform.oidcAuthUrl + "?";
               authRequestUrl += "client_id=" + platform.clientId;
               authRequestUrl += "&login_hint=" + login_hint;
-              authRequestUrl += "&lti_message_hint=" + lti_message_hint;
               authRequestUrl += "&nonce=" + nonce;
               authRequestUrl += "&prompt=none";
               authRequestUrl += "&redirect_uri=" + redirectUri;
@@ -321,6 +324,10 @@ public class LtiCoursesHandler extends Handler {
               authRequestUrl += "&response_type=id_token";
               authRequestUrl += "&scope=openid";
               authRequestUrl += "&state=" + state;
+
+              if (lti_message_hint != null && !lti_message_hint.isEmpty()) {
+                authRequestUrl += "&lti_message_hint=" + lti_message_hint;
+              }
 
               ctx.response()
                 .setStatusCode(302)
