@@ -51,7 +51,7 @@ public class LtiPlatformClient {
     final HttpClientRequest request = client.postAbs(url);
 
     if (logger.isTraceEnabled()) {
-      logger.trace(String.format("POST %s Request: %s", url, payload));
+      logger.info(String.format("POST %s Request: %s", url, payload));
     }
 
     request.handler(responseHandler)

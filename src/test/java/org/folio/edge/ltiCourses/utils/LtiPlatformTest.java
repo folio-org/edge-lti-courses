@@ -8,10 +8,6 @@ import java.io.PrintStream;
 import java.util.Base64;
 
 import org.apache.log4j.Logger;
-import org.folio.edge.core.model.ClientInfo;
-import org.folio.edge.core.utils.ApiKeyUtils.MalformedApiKeyException;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import io.vertx.core.json.JsonObject;

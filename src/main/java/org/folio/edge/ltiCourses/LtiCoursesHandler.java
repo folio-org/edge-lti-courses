@@ -89,7 +89,7 @@ public class LtiCoursesHandler extends Handler {
         logger.info("id_token=" + id_token);
         DecodedJWT jwt = JWT.decode(id_token);
 
-        // Look up the Platform's JWKS url.
+        // Look up the Platform's configuration.
         ((LtiCoursesOkapiClient) client).getConfigurations(
           confResp -> {
             if (confResp.statusCode() != 200) {
@@ -150,7 +150,8 @@ public class LtiCoursesHandler extends Handler {
 
               String query = "";
               try {
-                query = "query=(" + courseIdType + "=\"" + URLEncoder.encode(courseTitle, "UTF-8") + "\")";
+                // We're constructing a query string to look like: query=(courseNumber="CAL101")
+                query = "query=%28" + courseIdType + "%3D%22" + URLEncoder.encode(courseTitle, "UTF-8") + "%22%29";
               } catch (Exception exception) {
                 badRequest(ctx, "Failed to encode requested course title of " + courseTitle);
                 return;
@@ -160,8 +161,10 @@ public class LtiCoursesHandler extends Handler {
               ((LtiCoursesOkapiClient) client).getCourse(
                   query,
                   courseResp -> {
+                    logger.info("got courses response: " + courseResp.toString());
+
                     if (courseResp.statusCode() != 200) {
-                      badRequest(ctx, courseResp.statusMessage());
+                      internalServerError(ctx, "Folio had an internal server error");
                       return;
                     }
 
