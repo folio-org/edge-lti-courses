@@ -1,4 +1,4 @@
-package org.folio.edge.ltiCourses.utils;
+package org.folio.edge.ltiCourses.model;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;

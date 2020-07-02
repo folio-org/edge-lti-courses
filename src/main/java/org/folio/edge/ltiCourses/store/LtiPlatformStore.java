@@ -7,7 +7,7 @@ import org.folio.edge.core.cache.Cache;
 import org.folio.edge.core.cache.Cache.Builder;
 import org.folio.edge.core.cache.Cache.CacheValue;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
-import org.folio.edge.ltiCourses.utils.LtiPlatform;
+import org.folio.edge.ltiCourses.model.LtiPlatform;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;

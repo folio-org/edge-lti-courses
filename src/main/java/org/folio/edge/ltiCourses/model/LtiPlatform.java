@@ -1,4 +1,4 @@
-package org.folio.edge.ltiCourses.utils;
+package org.folio.edge.ltiCourses.model;
 
 import java.util.Iterator;
 import io.vertx.core.json.JsonObject;
