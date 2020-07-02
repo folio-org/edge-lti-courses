@@ -5,7 +5,6 @@ import java.text.SimpleDateFormat;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.Period;
-import java.time.temporal.TemporalAmount;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 
@@ -15,8 +14,9 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 public class Course {
+  public String courseListingId;
+
   protected String id;
-  protected String courseListingId;
   protected Term term;
   protected ArrayDeque<Reserve> reserves;
 

@@ -8,23 +8,21 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
 
-import org.folio.rest.client.ConfigurationsClient;
 
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.security.SecureStore;
 import org.folio.edge.ltiCourses.cache.OidcStateCache;
+import org.folio.edge.ltiCourses.model.Course;
 import org.folio.edge.ltiCourses.model.LtiPlatform;
 import org.folio.edge.ltiCourses.utils.LtiContextClaim;
 import org.folio.edge.ltiCourses.utils.LtiDeepLinkSettingsClaim;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClient;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
-import org.folio.edge.ltiCourses.utils.LtiPlatformClient;
 import org.folio.edge.ltiCourses.utils.LtiPlatformClientFactory;
 
 import static org.folio.edge.ltiCourses.Constants.BASE_URL;
@@ -36,13 +34,9 @@ import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
 import com.auth0.jwk.UrlJwkProvider;
 import com.auth0.jwt.JWT;
-import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
-import io.netty.handler.codec.http2.Http2Stream.State;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -114,6 +108,73 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     );
   }
 
+  protected void getCourse(
+    RoutingContext ctx,
+    LtiCoursesOkapiClient client,
+    DecodedJWT jwt,
+    String courseIdType,
+    OneParamVoidFunction<Course> action
+  ) {
+    LtiContextClaim contextClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/context").as(LtiContextClaim.class);
+    String courseTitle = contextClaim.title;
+    logger.info("Class Requested in LTI Context Claim: " + courseTitle);
+
+    String query = "";
+    try {
+      // We're constructing a query string to look like: query=(courseNumber="CAL101")
+      query = "query=%28" + courseIdType + "%3D%22" + URLEncoder.encode(courseTitle, "UTF-8") + "%22%29";
+    } catch (Exception exception) {
+      loggedBadRequest(ctx, "Failed to encode requested course title of " + courseTitle);
+      return;
+    }
+
+    logger.info("calling LtiCoursesOkapiClient::getCourse");
+    client.getCourse(query, courseResp -> {
+      if (courseResp.statusCode() != 200) {
+        internalServerError(ctx, "Folio had an internal server error");
+        return;
+      }
+
+      courseResp.bodyHandler(courseBody -> {
+        JsonObject courseJson;
+
+        try {
+          courseJson = new JsonObject(courseBody.toString())
+            .getJsonArray("courses")
+            .getJsonObject(0);
+        } catch (Exception exception) {
+          notFound(ctx, courseNotFound);
+          return;
+        }
+
+        Course course;
+        try {
+          course = new Course(courseJson);
+        } catch (Exception exception) {
+          logger.error("Failed to parse course from JsonObject: " + courseJson.encode());
+          notFound(ctx, courseNotFound);
+          return;
+        }
+
+        client.getCourseReserves(
+          course.courseListingId,
+          reservesResp -> {
+            if (reservesResp.statusCode() != 200) {
+              loggedBadRequest(ctx, reservesResp.statusMessage());
+              return;
+            }
+
+            reservesResp.bodyHandler(reservesBody -> {
+              course.setReserves(reservesBody.toString());
+              action.apply(course);
+            });
+          },
+          t -> handleProxyException(ctx, t)
+        );
+      });
+    }, t -> handleProxyException(ctx, t));
+  }
+
   protected void handleLaunch(RoutingContext ctx, String courseIdType, Boolean isDeepLinkingRoute) {
     handleCommonLTI(
       ctx,
@@ -170,124 +231,18 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           return;
         }
 
-        LtiContextClaim contextClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/context").as(LtiContextClaim.class);
-        String courseTitle = contextClaim.title;
-        logger.info("Class Requested in LTI Context Claim: " + courseTitle);
-
-        String query = "";
-        try {
-          // We're constructing a query string to look like: query=(courseNumber="CAL101")
-          query = "query=%28" + courseIdType + "%3D%22" + URLEncoder.encode(courseTitle, "UTF-8") + "%22%29";
-        } catch (Exception exception) {
-          loggedBadRequest(ctx, "Failed to encode requested course title of " + courseTitle);
-          return;
-        }
-
-        logger.info("calling LtiCoursesOkapiClient::getCourse");
-        ((LtiCoursesOkapiClient) client).getCourse(
-            query,
-            courseResp -> {
-              logger.info("got courses response: " + courseResp.toString());
-
-              if (courseResp.statusCode() != 200) {
-                internalServerError(ctx, "Folio had an internal server error");
-                return;
-              }
-
-              courseResp.bodyHandler(courseBody -> {
-                JsonObject course;
-
-                try {
-                  course = new JsonObject(courseBody.toString())
-                    .getJsonArray("courses")
-                    .getJsonObject(0);
-                } catch (Exception exception) {
-                  logger.error(courseNotFound);
-                  notFound(ctx, courseNotFound);
-                  return;
-                }
-
-                String courseListingId = course.getString("courseListingId");
-
-                JsonObject term = course
-                  .getJsonObject("courseListingObject", new JsonObject())
-                  .getJsonObject("termObject", new JsonObject());
-
-                logger.info("Reserves URL: " + baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx));
-
-                String message_type = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/message_type").asString();
-                if (message_type.equals(LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST)) {
-                  ((LtiCoursesOkapiClient) client).getCourseReserves(
-                    courseListingId,
-                    reservesResp -> {
-                      if (reservesResp.statusCode() != 200) {
-                        loggedBadRequest(ctx, reservesResp.statusMessage());
-                        return;
-                      }
-
-                      reservesResp.bodyHandler(reservesBody -> {
-                        JsonArray reserves = new JsonObject(reservesBody.toString()).getJsonArray("reserves");
-
-                        ctx.response().setStatusCode(200).end(reserves.encodePrettily());
-                      });
-                    },
-                    t -> handleProxyException(ctx, t)
-                  );
-                } else if (message_type.equals(LTI_MESSAGE_TYPE_DEEP_LINK_REQUEST)) {
-                  JsonObject deepLinkVars = new JsonObject()
-                    .put("id", courseListingId)
-                    .put("startDate", term.getString("startDate", "1970-01-01"))
-                    .put("endDate", term.getString("endDate", "3000-01-01"))
-                    .put("reservesUrl", baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx));
-
-                  jadeTemplateEngine.render(deepLinkVars, "templates/HTMLDeepLink", deepLink -> {
-                    LtiDeepLinkSettingsClaim deepLinkSettingsClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings").as(LtiDeepLinkSettingsClaim.class);
-                    logger.info("DeepLinkHTML: " + deepLink.result());
-
-                    HashMap<String,String> link = new HashMap<String,String>();
-                    link.put("type", "html");
-                    link.put("title", deepLinkSettingsClaim.title);
-                    link.put("html", deepLink.result().toString());
-
-                    ArrayList<HashMap<String, String>> links = new ArrayList<HashMap<String, String>>();
-                    links.add(link);
-
-                    String deepLinkResponse = JWT.create()
-                      .withIssuer(jwt.getAudience().get(0))
-                      .withAudience(jwt.getIssuer())
-                      .withExpiresAt(Date.from(Instant.now().plusSeconds(5 * 60)))
-                      .withIssuedAt(new Date())
-                      .withClaim("nonce", jwt.getClaim("nonce").asString())
-                      .withClaim("https://purl.imsglobal.org/spec/lti/claim/message_type", "LtiDeepLinkingResponse")
-                      .withClaim("https://purl.imsglobal.org/spec/lti/claim/version", "1.3.0")
-                      .withClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id", jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id").asString())
-                      .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/data", deepLinkSettingsClaim.data)
-                      .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/content_items", links)
-                      .sign(algorithm);
-
-                    JsonObject responseFormObject = new JsonObject()
-                      .put("deepLinkReturnUrl", deepLinkSettingsClaim.deep_link_return_url)
-                      .put("jwt", deepLinkResponse);
-
-                    jadeTemplateEngine.render(responseFormObject, "templates/DeepLinkResponseForm", deepLinkResponseForm -> {
-                      if (!deepLinkResponseForm.succeeded()) {
-                        String error = "Failed to render DeepLinkResponseForm template: " + deepLinkResponseForm.cause();
-                        logger.error(error);
-                        internalServerError(ctx, error);
-                        return;
-                      }
-
-                      ctx.response().setStatusCode(200);
-                      ctx.response().end(deepLinkResponseForm.result());
-                    });
-                  });
-                } else {
-                  loggedBadRequest(ctx, "Invalid message_type claim: " + message_type);
-                }
-              });
-            },
-            t -> handleProxyException(ctx, t)
-          );
+        getCourse(ctx, client, jwt, courseIdType,
+          course -> {
+            String message_type = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/message_type").asString();
+            if (message_type.equals(LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST)) {
+              renderResourceLink(ctx, jwt, course);
+            } else if (message_type.equals(LTI_MESSAGE_TYPE_DEEP_LINK_REQUEST)) {
+              renderDeepLink(ctx, jwt, course, algorithm);
+            } else {
+              loggedBadRequest(ctx, "Invalid message_type claim: " + message_type);
+            }
+          }
+        );
       }
     );
   }
@@ -393,6 +348,66 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     );
   }
 
+  protected void renderDeepLink(RoutingContext ctx, DecodedJWT jwt, Course course, Algorithm algorithm) {
+    JsonObject deepLinkVars = new JsonObject()
+      .put("id", course.courseListingId);
+    // .put("startDate", course.startDate)
+    // .put("endDate", course.endDate)
+    // .put("reservesUrl", baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx));
+
+    jadeTemplateEngine.render(deepLinkVars, "templates/HTMLDeepLink", deepLink -> {
+      LtiDeepLinkSettingsClaim deepLinkSettingsClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings").as(LtiDeepLinkSettingsClaim.class);
+      logger.info("DeepLinkHTML: " + deepLink.result());
+
+      HashMap<String,String> link = new HashMap<String,String>();
+      link.put("type", "html");
+      link.put("title", deepLinkSettingsClaim.title);
+      link.put("html", deepLink.result().toString());
+
+      ArrayList<HashMap<String, String>> links = new ArrayList<HashMap<String, String>>();
+      links.add(link);
+
+      String deepLinkResponse = JWT.create()
+        .withIssuer(jwt.getAudience().get(0))
+        .withAudience(jwt.getIssuer())
+        .withExpiresAt(Date.from(Instant.now().plusSeconds(5 * 60)))
+        .withIssuedAt(new Date())
+        .withClaim("nonce", jwt.getClaim("nonce").asString())
+        .withClaim("https://purl.imsglobal.org/spec/lti/claim/message_type", "LtiDeepLinkingResponse")
+        .withClaim("https://purl.imsglobal.org/spec/lti/claim/version", "1.3.0")
+        .withClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id", jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id").asString())
+        .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/data", deepLinkSettingsClaim.data)
+        .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/content_items", links)
+        .sign(algorithm);
+
+      JsonObject responseFormObject = new JsonObject()
+        .put("deepLinkReturnUrl", deepLinkSettingsClaim.deep_link_return_url)
+        .put("jwt", deepLinkResponse);
+
+      jadeTemplateEngine.render(responseFormObject, "templates/DeepLinkResponseForm", deepLinkResponseForm -> {
+        if (!deepLinkResponseForm.succeeded()) {
+          String error = "Failed to render DeepLinkResponseForm template: " + deepLinkResponseForm.cause();
+          logger.error(error);
+          internalServerError(ctx, error);
+          return;
+        }
+
+        ctx.response().setStatusCode(200);
+        ctx.response().end(deepLinkResponseForm.result());
+      });
+    });
+  }
+
+  protected void renderResourceLink(RoutingContext ctx, DecodedJWT jwt, Course course) {
+    JsonArray currentReserves = course.getCurrentReserves();
+    ctx.response().setStatusCode(200).end(currentReserves.encodePrettily());
+  }
+
+  protected void loggedBadRequest(RoutingContext ctx, String msg) {
+    logger.error(msg);
+    badRequest(ctx, msg);
+  }
+
   private String generateRandomString() {
     int leftLimit = 97; // 'a'
     int rightLimit = 122; // 'z'
@@ -403,9 +418,9 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
       .toString();
   }
 
-  protected void loggedBadRequest(RoutingContext ctx, String msg) {
-    logger.error(msg);
-    badRequest(ctx, msg);
+  @FunctionalInterface
+  public interface OneParamVoidFunction<A> {
+    public void apply(A a);
   }
 
   @FunctionalInterface
