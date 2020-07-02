@@ -58,7 +58,7 @@ public class CourseTest {
     + "  \"reserves\" : [ {"
     + "    \"id\" : \"b9805a3c-d024-4883-9f4d-5059a7da218f\","
     + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
-    + "    \"itemId\" : \"3f359e7a-9c4e-47dd-9046-445d13b7fd3e\""
+    + "    \"itemId\" : \"foobar\""
     + "  } ],"
     + "  \"totalRecords\" : 1"
     + "}";
@@ -68,6 +68,7 @@ public class CourseTest {
     JsonArray reserves = course.getCurrentReserves(octoberClock);
 
     assertEquals(1, reserves.size());
+    assertEquals("foobar", reserves.getJsonObject(0).getString("itemId"));
   }
 
   @Test
@@ -80,7 +81,7 @@ public class CourseTest {
     + "  \"reserves\" : [ {"
     + "    \"id\" : \"b9805a3c-d024-4883-9f4d-5059a7da218f\","
     + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
-    + "    \"itemId\" : \"3f359e7a-9c4e-47dd-9046-445d13b7fd3e\""
+    + "    \"itemId\" : \"foobar\""
     + "  } ],"
     + "  \"totalRecords\" : 1"
     + "}";
@@ -102,7 +103,7 @@ public class CourseTest {
     + "  \"reserves\" : [ {"
     + "    \"id\" : \"b9805a3c-d024-4883-9f4d-5059a7da218f\","
     + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
-    + "    \"itemId\" : \"3f359e7a-9c4e-47dd-9046-445d13b7fd3e\""
+    + "    \"itemId\" : \"foobar\""
     + "  } ],"
     + "  \"totalRecords\" : 1"
     + "}";
@@ -126,7 +127,7 @@ public class CourseTest {
     + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
     + "    \"startDate\" : \"2020-09-01\","
     + "    \"endDate\" : \"2020-09-30\","
-    + "    \"itemId\" : \"3f359e7a-9c4e-47dd-9046-445d13b7fd3e\""
+    + "    \"itemId\" : \"foobar\""
     + "  } ],"
     + "  \"totalRecords\" : 1"
     + "}";
@@ -150,7 +151,7 @@ public class CourseTest {
     + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
     + "    \"startDate\" : \"2020-11-01\","
     + "    \"endDate\" : \"2020-11-30\","
-    + "    \"itemId\" : \"3f359e7a-9c4e-47dd-9046-445d13b7fd3e\""
+    + "    \"itemId\" : \"foobar\""
     + "  } ],"
     + "  \"totalRecords\" : 1"
     + "}";
@@ -174,7 +175,7 @@ public class CourseTest {
     + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
     + "    \"startDate\" : \"2020-10-01\","
     + "    \"endDate\" : \"2020-10-30\","
-    + "    \"itemId\" : \"3f359e7a-9c4e-47dd-9046-445d13b7fd3e\""
+    + "    \"itemId\" : \"foobar\""
     + "  } ],"
     + "  \"totalRecords\" : 1"
     + "}";
@@ -184,6 +185,7 @@ public class CourseTest {
     JsonArray reserves = course.getCurrentReserves(octoberClock);
 
     assertEquals(1, reserves.size());
+    assertEquals("foobar", reserves.getJsonObject(0).getString("itemId"));
   }
 
   @Test
@@ -198,7 +200,7 @@ public class CourseTest {
     + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
     + "    \"startDate\" : \"2020-10-02\","
     + "    \"endDate\" : \"2020-10-30\","
-    + "    \"itemId\" : \"3f359e7a-9c4e-47dd-9046-445d13b7fd3e\""
+    + "    \"itemId\" : \"foobar\""
     + "  } ],"
     + "  \"totalRecords\" : 1"
     + "}";
@@ -208,6 +210,7 @@ public class CourseTest {
     JsonArray reserves = course.getCurrentReserves(octoberClock);
 
     assertEquals(1, reserves.size());
+    assertEquals("foobar", reserves.getJsonObject(0).getString("itemId"));
   }
 
   @Test
@@ -222,7 +225,7 @@ public class CourseTest {
     + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
     + "    \"startDate\" : \"2020-10-02\","
     + "    \"endDate\" : \"2020-10-30\","
-    + "    \"itemId\" : \"3f359e7a-9c4e-47dd-9046-445d13b7fd3e\""
+    + "    \"itemId\" : \"foobar\""
     + "  } ],"
     + "  \"totalRecords\" : 1"
     + "}";
@@ -232,6 +235,7 @@ public class CourseTest {
     JsonArray reserves = course.getCurrentReserves(octoberClock);
 
     assertEquals(1, reserves.size());
+    assertEquals("foobar", reserves.getJsonObject(0).getString("itemId"));
   }
 
   @Test
@@ -246,7 +250,7 @@ public class CourseTest {
     + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
     + "    \"startDate\" : \"2020-09-05\","
     + "    \"endDate\" : \"2020-10-01\","
-    + "    \"itemId\" : \"3f359e7a-9c4e-47dd-9046-445d13b7fd3e\""
+    + "    \"itemId\" : \"foobar\""
     + "  } ],"
     + "  \"totalRecords\" : 1"
     + "}";
@@ -270,7 +274,7 @@ public class CourseTest {
     + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
     + "    \"startDate\" : \"2020-10-03\","
     + "    \"endDate\" : \"2020-10-11\","
-    + "    \"itemId\" : \"3f359e7a-9c4e-47dd-9046-445d13b7fd3e\""
+    + "    \"itemId\" : \"foobar\""
     + "  } ],"
     + "  \"totalRecords\" : 1"
     + "}";
@@ -280,5 +284,47 @@ public class CourseTest {
     JsonArray reserves = course.getCurrentReserves(octoberClock);
 
     assertEquals(0, reserves.size());
+  }
+
+  @Test
+  public void testCourseWithSomeValidItems() {
+    logger.info("=== Test current reserves calculation with reserves of mixed validity  - Success ===");
+
+    Course course = new Course(courseJson);
+
+    String mixedReserves = "{"
+    + "  \"reserves\" : [ {"
+    + "    \"id\" : \"explicitly-validd\","
+    + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
+    + "    \"startDate\" : \"2020-10-01\","
+    + "    \"endDate\" : \"2020-10-30\","
+    + "    \"itemId\" : \"12\""
+    + "  }, { "
+    + "    \"id\" : \"implicitly-valid-from-course\","
+    + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
+    + "    \"itemId\" : \"34\""
+    + "  }, { "
+    + "    \"id\" : \"invalid-expired\","
+    + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
+    + "    \"startDate\" : \"2020-09-01\","
+    + "    \"endDate\" : \"2020-09-30\","
+    + "    \"itemId\" : \"56\""
+    + "  }, { "
+    + "    \"id\" : \"invalid-not-yet-started\","
+    + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
+    + "    \"startDate\" : \"2020-11-01\","
+    + "    \"endDate\" : \"2020-11-30\","
+    + "    \"itemId\" : \"78\""
+    + "  }],"
+    + "  \"totalRecords\" : 1"
+    + "}";
+
+    course.setReserves(mixedReserves);
+
+    JsonArray reserves = course.getCurrentReserves(octoberClock);
+
+    assertEquals(2, reserves.size());
+    assertEquals("12", reserves.getJsonObject(0).getString("itemId"));
+    assertEquals("34", reserves.getJsonObject(1).getString("itemId"));
   }
 }
