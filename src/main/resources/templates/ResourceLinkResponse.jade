@@ -1,0 +1,24 @@
+- var reserves = [{itemId: 1, barcode: "foo", title: "Fooing!", uri: "find.library.edu?query=foo", startDate: "2020-09-01", endDate: "2020-11-09", "primaryContributor": "Barrus, Fulius"},{itemId: 2, barcode: "bar", title: "Barring!", uri: "find.library.edu?query=bar", startDate: "2020-09-10", endDate: "2020-11-20"}];
+
+mixin reserve-list-item(reserve)
+  li(class="reserve-list-item")
+    div
+      a(class="reserve-url" href=reserve.uri) #{reserve.title}
+      if (reserve.primaryContributor)
+        span - #{reserve.primaryContributor}
+    div
+      span(class="reserve-date", data-start-date=reserve.startDate, data-end-date=reserve.endDate)
+
+ul(class="lti-course-reserves-list")
+  each reserve in reserves
+    +reserve-list-item(reserve)
+  else
+    div sorry, no reserves!
+
+script(type!="text/javascript").
+  document.querySelectorAll('.lti-course-reserves-list [data-start-date]').forEach(node => {
+    node.innerText = new Date(node.dataset.startDate).toLocaleDateString(undefined, { timeZone: "UTC" });
+    node.innerHTML += '&nbsp;&#8594;&nbsp;'
+    node.innerText += new Date(node.dataset.endDate).toLocaleDateString(undefined, { timeZone: "UTC" });
+  });
+

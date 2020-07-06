@@ -13,7 +13,6 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
-
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.security.SecureStore;
 import org.folio.edge.ltiCourses.cache.OidcStateCache;
@@ -224,6 +223,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         }
 
         String memorizedState = OidcStateCache.getInstance().get(nonce);
+        OidcStateCache.getInstance().put(nonce, null);
         String state = attributes.get("state");
         if (!memorizedState.equals(state)) {
           logger.error("Got new state of: " + state + " but expected: " + memorizedState);
@@ -335,19 +335,6 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     );
   }
 
-  protected void handleGetJWKS(RoutingContext ctx) {
-    handleCommon(ctx,
-      new String[] {},
-      new String[] {},
-      (client, params) -> {
-        logger.info("Handling request for public key");
-
-        ctx.response().setStatusCode(200);
-        ctx.response().end(toolPublicKey);
-      }
-    );
-  }
-
   protected void renderDeepLink(RoutingContext ctx, DecodedJWT jwt, Course course, Algorithm algorithm) {
     JsonObject deepLinkVars = new JsonObject()
       .put("id", course.courseListingId);
@@ -399,13 +386,27 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   }
 
   protected void renderResourceLink(RoutingContext ctx, DecodedJWT jwt, Course course) {
-    JsonArray currentReserves = course.getCurrentReserves();
-    ctx.response().setStatusCode(200).end(currentReserves.encodePrettily());
+    JsonObject model = new JsonObject()
+      .put("reserves", course.getCurrentReserves());
+
+    jadeTemplateEngine.render(model, "templates/ResourceLinkResponse", html -> {
+      if (!html.succeeded()) {
+        loggedInternalServerError(ctx, "Failed to render resource link: " + html.cause());
+        return;
+      }
+
+      ctx.response().setStatusCode(200).end(html.result().toString());
+    });
   }
 
   protected void loggedBadRequest(RoutingContext ctx, String msg) {
     logger.error(msg);
     badRequest(ctx, msg);
+  }
+
+  protected void loggedInternalServerError(RoutingContext ctx, String msg) {
+    logger.error(msg);
+    internalServerError(ctx, msg);
   }
 
   private String generateRandomString() {
