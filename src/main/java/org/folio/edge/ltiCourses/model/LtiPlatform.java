@@ -7,6 +7,7 @@ public class LtiPlatform {
   public String clientId;
   public String issuer;
   public String jwksUrl;
+  public String noReservesMsg;
   public String oauthTokenUrl;
   public String oidcAuthUrl;
 
@@ -25,6 +26,9 @@ public class LtiPlatform {
           break;
         case "platformJwksUrl":
           this.jwksUrl = value;
+          break;
+        case "platformNoReservesMsg":
+          this.noReservesMsg = value;
           break;
         case "platformOauthTokenUrl":
           this.oauthTokenUrl = value;

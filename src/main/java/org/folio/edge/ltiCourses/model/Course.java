@@ -27,7 +27,11 @@ public class Course {
   public Course (JsonObject json) {
     this.id = json.getString("id", "");
     this.courseListingId = json.getString("courseListingId", "");
-    this.term = new Term(json.getJsonObject("term", new JsonObject()));
+
+    this.term = new Term(json
+      .getJsonObject("courseListingObject", new JsonObject())
+      .getJsonObject("termObject", new JsonObject())
+    );
     this.reserves = new ArrayDeque<Reserve>();
   }
 
@@ -65,11 +69,15 @@ public class Course {
     Iterator<Reserve> i = reserves.iterator();
     while (i.hasNext()) {
       Reserve reserve = i.next();
+
+      String startDateString = term.startDate;
+      String endDateString = term.endDate;
       Instant startDate = termStart;
       Instant endDate = termEnd;
 
       if (!(reserve.startDate.isEmpty())) {
         try {
+          startDateString = reserve.startDate;
           startDate = format.parse(reserve.startDate).toInstant();
         } catch (ParseException e) {
           logger.error("Failed to parse reserve start date: " + reserve.startDate);
@@ -78,6 +86,7 @@ public class Course {
 
       if (!(reserve.endDate.isEmpty())) {
         try {
+          endDateString = reserve.endDate;
           endDate = format.parse(reserve.endDate).toInstant();
         } catch (ParseException e) {
           logger.error("Failed to parse reserve end date: " + reserve.endDate);
@@ -85,7 +94,10 @@ public class Course {
       }
 
       if (now.isAfter(startDate) && now.isBefore(endDate.plus(Period.ofDays(1)))) {
-        json.add(reserve.asJsonObject());
+        JsonObject reserveJson = reserve.asJsonObject();
+        reserveJson.put("startDate", startDateString);
+        reserveJson.put("endDate", endDateString);
+        json.add(reserveJson);
       }
     }
 

@@ -5,6 +5,8 @@ import java.util.Iterator;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import org.folio.edge.ltiCourses.utils.DateUtils;
+
 public class Reserve {
   public String itemId;
   public String barcode;
@@ -16,8 +18,11 @@ public class Reserve {
 
   public Reserve(JsonObject json) {
     this.itemId = json.getString("itemId", "");
-    this.startDate = json.getString("startDate", "");
-    this.endDate = json.getString("endDate", "");
+
+    // Normalize our dates to just the YMD like is stored on the Reserve.
+    // We won't need this when https://issues.folio.org/browse/UICR-94 is resolved.
+    this.startDate = DateUtils.normalizeDate(json.getString("startDate", ""));
+    this.endDate = DateUtils.normalizeDate(json.getString("endDate", ""));
 
     JsonObject item = json.getJsonObject("copiedItem", new JsonObject());
     this.barcode = item.getString("barcode", "");

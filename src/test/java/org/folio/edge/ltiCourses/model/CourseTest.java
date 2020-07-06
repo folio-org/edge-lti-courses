@@ -16,9 +16,11 @@ public class CourseTest {
   public static final JsonObject courseJson = new JsonObject()
     .put("id", "foo")
     .put("courseListingId", "bar")
-    .put("term", new JsonObject()
-      .put("startDate", "2020-09-01")
-      .put("endDate", "2020-11-30")
+    .put("courseListingObject", new JsonObject()
+      .put("termObject", new JsonObject()
+        .put("startDate", "2020-09-01")
+        .put("endDate", "2020-11-30")
+      )
     );
 
   public static final Clock augustClock = Clock.fixed(Instant.ofEpochSecond(1596387815), ZoneId.systemDefault()); // August 2, 2020

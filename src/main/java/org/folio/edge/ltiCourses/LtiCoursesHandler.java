@@ -51,7 +51,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected String baseUrl = System.getProperty(BASE_URL);
 
   protected String courseNotFound = "The requested course was not found.";
-  protected String reservesNotFound = System.getProperty(RESERVES_NOT_FOUND_MESSAGE, "This course has no reserves.");
+  protected String reservesNotFound = System.getProperty(RESERVES_NOT_FOUND_MESSAGE, "This course has no current reserves.");
 
   private static final Logger logger = Logger.getLogger(LtiCoursesHandler.class);
 
@@ -76,6 +76,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     RoutingContext ctx,
     String[] requiredParams,
     String[] optionalParams,
+    String issuer,
     ThreeParamVoidFunction<LtiCoursesOkapiClient, Map<String, String>, LtiPlatform> action
   ) {
     handleCommon(
@@ -83,8 +84,14 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
       requiredParams,
       optionalParams,
       (client, params) -> {
+        if (issuer == null || issuer.isEmpty()) {
+          loggedBadRequest(ctx, "Issuer not provided");
+          return;
+        }
+
         LtiCoursesOkapiClient coursesOkapiClient = (LtiCoursesOkapiClient) client;
         coursesOkapiClient.getConfigurations(
+          issuer,
           response -> {
             if (response.statusCode() != 200) {
               logger.error(response.statusCode() + ": " + response.statusMessage());
@@ -116,7 +123,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   ) {
     LtiContextClaim contextClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/context").as(LtiContextClaim.class);
     String courseTitle = contextClaim.title;
-    logger.info("Class Requested in LTI Context Claim: " + courseTitle);
+    logger.info("Class ID: " + contextClaim.id + " Title: " + contextClaim.title + " Label: " + contextClaim.label);
 
     String query = "";
     try {
@@ -175,22 +182,21 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   }
 
   protected void handleLaunch(RoutingContext ctx, String courseIdType, Boolean isDeepLinkingRoute) {
+    String id_token = ctx.request().formAttributes().get("id_token");
+    if (id_token == null || id_token.isEmpty()) {
+      loggedBadRequest(ctx, "id_token is required and was not found");
+      return;
+    }
+
+    final DecodedJWT jwt = JWT.decode(id_token);
+
     handleCommonLTI(
       ctx,
       new String[] {},
       new String[] {},
+      jwt.getIssuer(),
       (client, params, platform) -> {
-        MultiMap attributes = ctx.request().formAttributes();
-
-        String id_token = attributes.get("id_token");
-        logger.info("id_token=" + id_token);
-        if (id_token == null || id_token.isEmpty()) {
-          loggedBadRequest(ctx, "id_token is required and was not found");
-          return;
-        }
-
-        DecodedJWT jwt = JWT.decode(id_token);
-
+        logger.info("JWKS: " + platform.jwksUrl);
         // Fetch the JWK so we can validate it.
         RSAPublicKey platformPublicKey;
         try {
@@ -206,10 +212,10 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         Algorithm algorithm = Algorithm.RSA256(platformPublicKey, privateKey);
         algorithm.verify(jwt);
 
-        if (!jwt.getIssuer().equals(platform.issuer)) {
-          loggedBadRequest(ctx, "JWT 'iss' doesn't match the configured Platform Issuer");
-          return;
-        }
+        // if (!jwt.getIssuer().equals(platform.issuer)) {
+        //   loggedBadRequest(ctx, "JWT 'iss' doesn't match the configured Platform Issuer");
+        //   return;
+        // }
 
         if (jwt.getAudience().contains(platform.clientId) == false) {
           loggedBadRequest(ctx, "JWT 'aud' doesn't contain the configured client ID");
@@ -224,7 +230,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
 
         String memorizedState = OidcStateCache.getInstance().get(nonce);
         OidcStateCache.getInstance().put(nonce, null);
-        String state = attributes.get("state");
+        String state = ctx.request().formAttributes().get("state");
         if (!memorizedState.equals(state)) {
           logger.error("Got new state of: " + state + " but expected: " + memorizedState);
           badRequest(ctx, "Nonce is invalid, states do not match");
@@ -235,9 +241,9 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           course -> {
             String message_type = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/message_type").asString();
             if (message_type.equals(LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST)) {
-              renderResourceLink(ctx, jwt, course);
+              renderResourceLink(ctx, jwt, course, platform);
             } else if (message_type.equals(LTI_MESSAGE_TYPE_DEEP_LINK_REQUEST)) {
-              renderDeepLink(ctx, jwt, course, algorithm);
+              renderDeepLink(ctx, jwt, course, platform, algorithm);
             } else {
               loggedBadRequest(ctx, "Invalid message_type claim: " + message_type);
             }
@@ -258,16 +264,16 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
       new String[] {
         "lti_message_hint"
       },
+      ctx.request().params().get("iss"),
       (client, params, platform) -> {
-        String iss = params.get("iss");
         String login_hint = params.get("login_hint");
         String lti_message_hint = params.get("lti_message_hint");
         String target_link_uri = params.get("target_link_uri");
 
-        if (!platform.issuer.equals(iss)) {
-          loggedBadRequest(ctx, "Configured Issuer does not matched the OIDC request's issuer");
-          return;
-        }
+        // if (!platform.issuer.equals(iss)) {
+        //   loggedBadRequest(ctx, "Configured Issuer does not matched the OIDC request's issuer");
+        //   return;
+        // }
 
         String redirectUri = target_link_uri;
         try {
@@ -335,7 +341,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     );
   }
 
-  protected void renderDeepLink(RoutingContext ctx, DecodedJWT jwt, Course course, Algorithm algorithm) {
+  protected void renderDeepLink(RoutingContext ctx, DecodedJWT jwt, Course course, LtiPlatform platform, Algorithm algorithm) {
     JsonObject deepLinkVars = new JsonObject()
       .put("id", course.courseListingId);
     // .put("startDate", course.startDate)
@@ -385,9 +391,13 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     });
   }
 
-  protected void renderResourceLink(RoutingContext ctx, DecodedJWT jwt, Course course) {
+  protected void renderResourceLink(RoutingContext ctx, DecodedJWT jwt, Course course, LtiPlatform platform) {
     JsonObject model = new JsonObject()
-      .put("reserves", course.getCurrentReserves());
+      .put("reserves", course.getCurrentReserves())
+      .put("noReservesMessage", platform.noReservesMsg);
+
+      logger.info("Current Reserves");
+      logger.info(course.getCurrentReserves().encodePrettily());
 
     jadeTemplateEngine.render(model, "templates/ResourceLinkResponse", html -> {
       if (!html.succeeded()) {
@@ -395,7 +405,10 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         return;
       }
 
-      ctx.response().setStatusCode(200).end(html.result().toString());
+      ctx.response()
+        .setStatusCode(200)
+        .putHeader("content-type", "text/html;charset=UTF-8")
+        .end(html.result().toString());
     });
   }
 

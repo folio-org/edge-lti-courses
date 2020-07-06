@@ -20,10 +20,19 @@ public class LtiCoursesOkapiClient extends OkapiClient {
   }
 
   public void getConfigurations(
+    String issuer,
     Handler<HttpClientResponse> responseHandler,
     Handler<Throwable> exceptionHandler
   ) {
+    // mod-configuration can't run queries with slashes in them (even if they're url-encoded),
+    // so we search for the protocol-less version of the issuer if we think it contains one.
+    String issuerQuery = issuer;
+    if (issuerQuery.contains("://")) {
+      issuerQuery = issuerQuery.substring(issuerQuery.indexOf("://") + 3);
+    }
+
     get(
+      // okapiURL + "/configurations/entries?limit=100&query=(module=EDGELTICOURSES+and+configName=" + issuerQuery + ")",
       okapiURL + "/configurations/entries?limit=100&query=(module=EDGELTICOURSES)",
       tenant,
       responseHandler,
