@@ -24,8 +24,6 @@ import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClient;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
 import org.folio.edge.ltiCourses.utils.LtiPlatformClientFactory;
 
-import static org.folio.edge.ltiCourses.Constants.BASE_URL;
-import static org.folio.edge.ltiCourses.Constants.RESERVES_NOT_FOUND_MESSAGE;
 import static org.folio.edge.ltiCourses.Constants.LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST;
 import static org.folio.edge.ltiCourses.Constants.LTI_MESSAGE_TYPE_DEEP_LINK_REQUEST;
 
@@ -46,10 +44,6 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected JadeTemplateEngine jadeTemplateEngine;
   protected String toolPublicKey;
 
-  protected String baseUrl = System.getProperty(BASE_URL);
-
-  protected String courseNotFound = "The requested course was not found.";
-
   private static final Logger logger = Logger.getLogger(LtiCoursesHandler.class);
 
   public LtiCoursesHandler(
@@ -65,8 +59,6 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     this.pcf = pcf;
     this.privateKey = privateKey;
     this.jadeTemplateEngine = jadeTemplateEngine;
-
-    logger.info("Handler started");
   }
 
   protected void handleCommonLTI(
@@ -152,7 +144,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
             .getJsonArray("courses")
             .getJsonObject(0);
         } catch (Exception exception) {
-          notFound(ctx, courseNotFound);
+          renderNoReserves(ctx, platform);
           return;
         }
 
@@ -161,7 +153,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           course = new Course(courseJson);
         } catch (Exception exception) {
           logger.error("Failed to parse course from JsonObject: " + courseJson.encode());
-          notFound(ctx, courseNotFound);
+          renderNoReserves(ctx, platform);
           return;
         }
 
@@ -389,11 +381,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected void renderResourceLink(RoutingContext ctx, DecodedJWT jwt, Course course, LtiPlatform platform) {
     JsonObject model = new JsonObject()
       .put("reserves", course.getCurrentReserves())
-      .put("searchUrl", platform.searchUrl)
-      .put("noReservesMessage", platform.noReservesMsg);
-
-      logger.info("Current Reserves");
-      logger.info(course.getCurrentReserves().encodePrettily());
+      .put("platform", platform.asJsonObject());
 
     jadeTemplateEngine.render(model, "templates/ResourceLinkResponse", html -> {
       if (!html.succeeded()) {
@@ -401,10 +389,21 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         return;
       }
 
-      ctx.response()
-        .setStatusCode(200)
-        .putHeader("content-type", "text/html;charset=UTF-8")
-        .end(html.result().toString());
+      htmlResponse(ctx, html.result().toString());
+    });
+  }
+
+  protected void renderNoReserves(RoutingContext ctx, LtiPlatform platform) {
+    JsonObject model = new JsonObject()
+      .put("platform", platform.asJsonObject());
+
+    jadeTemplateEngine.render(model, "templates/NoReserves", html -> {
+      if (!html.succeeded()) {
+        loggedInternalServerError(ctx, "Failed to render resource link: " + html.cause());
+        return;
+      }
+
+      htmlResponse(ctx, html.result().toString());
     });
   }
 
@@ -416,6 +415,13 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected void loggedInternalServerError(RoutingContext ctx, String msg) {
     logger.error(msg);
     internalServerError(ctx, msg);
+  }
+
+  protected void htmlResponse(RoutingContext ctx, String html) {
+    ctx.response()
+      .setStatusCode(200)
+      .putHeader("content-type", "text/html;charset=UTF-8")
+      .end(html);
   }
 
   private String generateRandomString() {
