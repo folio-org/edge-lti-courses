@@ -19,7 +19,7 @@ public class LtiCoursesOkapiClient extends OkapiClient {
     super(vertx, okapiURL, tenant, timeout);
   }
 
-  public void getConfigurations(
+  public void getPlatform(
     String issuer,
     Handler<HttpClientResponse> responseHandler,
     Handler<Throwable> exceptionHandler
@@ -33,7 +33,7 @@ public class LtiCoursesOkapiClient extends OkapiClient {
 
     get(
       // okapiURL + "/configurations/entries?limit=100&query=(module=EDGELTICOURSES+and+configName=" + issuerQuery + ")",
-      okapiURL + "/configurations/entries?limit=100&query=(module=EDGELTICOURSES)",
+      okapiURL + "/configurations/entries?limit=100&query=(module=EDGELTICOURSES+and+configName=platform+and+code=" + issuerQuery + ")",
       tenant,
       responseHandler,
       exceptionHandler

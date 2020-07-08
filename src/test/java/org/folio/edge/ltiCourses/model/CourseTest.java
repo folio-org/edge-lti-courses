@@ -329,4 +329,31 @@ public class CourseTest {
     assertEquals("12", reserves.getJsonObject(0).getString("itemId"));
     assertEquals("34", reserves.getJsonObject(1).getString("itemId"));
   }
+
+  @Test
+  public void testCurrentCourseWithSearchUrlAndBarcode() {
+    logger.info("=== Test current reserves calculation with current course - Success ===");
+
+    Course course = new Course(courseJson);
+
+    String datelessReserve = "{"
+    + "  \"reserves\" : [ {"
+    + "    \"id\" : \"b9805a3c-d024-4883-9f4d-5059a7da218f\","
+    + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
+    + "    \"itemId\" : \"foobar\","
+    + "    \"copiedItem\" : {"
+    + "      \"barcode\" : \"raboof\""
+    + "    }"
+    + "  } ],"
+    + "  \"totalRecords\" : 1"
+    + "}";
+
+    course.setSearchUrl("https://find.mylib.edu?q=[BARCODE]");
+    course.setReserves(datelessReserve);
+
+    JsonArray reserves = course.getCurrentReserves(octoberClock);
+
+    assertEquals(1, reserves.size());
+    assertEquals("https://find.mylib.edu?q=raboof", reserves.getJsonObject(0).getString("uri"));
+  }
 }

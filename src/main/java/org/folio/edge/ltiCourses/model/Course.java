@@ -17,6 +17,7 @@ public class Course {
   public String courseListingId;
 
   protected String id;
+  protected String searchUrl;
   protected Term term;
   protected ArrayDeque<Reserve> reserves;
 
@@ -33,6 +34,10 @@ public class Course {
       .getJsonObject("termObject", new JsonObject())
     );
     this.reserves = new ArrayDeque<Reserve>();
+  }
+
+  public void setSearchUrl(String searchUrl) {
+    this.searchUrl = searchUrl;
   }
 
   public void setReserves(String reservesString) {
@@ -95,8 +100,18 @@ public class Course {
 
       if (now.isAfter(startDate) && now.isBefore(endDate.plus(Period.ofDays(1)))) {
         JsonObject reserveJson = reserve.asJsonObject();
+
         reserveJson.put("startDate", startDateString);
         reserveJson.put("endDate", endDateString);
+
+        if (reserve.uri.isEmpty()) {
+          if (searchUrl != null && searchUrl.contains("[BARCODE]")) {
+            reserveJson.put("uri", searchUrl.replace("[BARCODE]", reserve.barcode));
+          } else {
+            reserveJson.put("uri", searchUrl);
+          }
+        }
+
         json.add(reserveJson);
       }
     }

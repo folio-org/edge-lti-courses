@@ -1,7 +1,7 @@
 mixin reserve-list-item(reserve)
   li(class="reserve-list-item")
     div
-      a(class="reserve-url" href=reserve.getString("uri")) #{reserve.getString("title")}
+      a(class="reserve-url" href=reserve.getString("uri") target="_parent") #{reserve.getString("title")}
       if (reserve.getString("primaryContributor"))
         span  - #{reserve.getString("primaryContributor")}
     div

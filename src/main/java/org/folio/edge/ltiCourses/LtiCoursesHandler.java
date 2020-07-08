@@ -36,8 +36,6 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
-import io.vertx.core.MultiMap;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
@@ -51,7 +49,6 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected String baseUrl = System.getProperty(BASE_URL);
 
   protected String courseNotFound = "The requested course was not found.";
-  protected String reservesNotFound = System.getProperty(RESERVES_NOT_FOUND_MESSAGE, "This course has no current reserves.");
 
   private static final Logger logger = Logger.getLogger(LtiCoursesHandler.class);
 
@@ -69,7 +66,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     this.privateKey = privateKey;
     this.jadeTemplateEngine = jadeTemplateEngine;
 
-    logger.info("Using base URL: " + baseUrl);
+    logger.info("Handler started");
   }
 
   protected void handleCommonLTI(
@@ -90,7 +87,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         }
 
         LtiCoursesOkapiClient coursesOkapiClient = (LtiCoursesOkapiClient) client;
-        coursesOkapiClient.getConfigurations(
+        coursesOkapiClient.getPlatform(
           issuer,
           response -> {
             if (response.statusCode() != 200) {
@@ -101,6 +98,11 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
 
             response.bodyHandler(body -> {
               LtiPlatform platform = new LtiPlatform(new JsonObject(body.toString()));
+              if (!platform.issuer.equals(issuer)) {
+                loggedBadRequest(ctx, "No LTI Platform is known for this request's issuer.");
+                return;
+              }
+
               action.apply(
                 coursesOkapiClient,
                 params,
@@ -118,6 +120,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     RoutingContext ctx,
     LtiCoursesOkapiClient client,
     DecodedJWT jwt,
+    LtiPlatform platform,
     String courseIdType,
     OneParamVoidFunction<Course> action
   ) {
@@ -161,6 +164,8 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           notFound(ctx, courseNotFound);
           return;
         }
+
+        course.setSearchUrl(platform.searchUrl);
 
         client.getCourseReserves(
           course.courseListingId,
@@ -212,11 +217,6 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         Algorithm algorithm = Algorithm.RSA256(platformPublicKey, privateKey);
         algorithm.verify(jwt);
 
-        // if (!jwt.getIssuer().equals(platform.issuer)) {
-        //   loggedBadRequest(ctx, "JWT 'iss' doesn't match the configured Platform Issuer");
-        //   return;
-        // }
-
         if (jwt.getAudience().contains(platform.clientId) == false) {
           loggedBadRequest(ctx, "JWT 'aud' doesn't contain the configured client ID");
           return;
@@ -237,7 +237,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           return;
         }
 
-        getCourse(ctx, client, jwt, courseIdType,
+        getCourse(ctx, client, jwt, platform, courseIdType,
           course -> {
             String message_type = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/message_type").asString();
             if (message_type.equals(LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST)) {
@@ -269,11 +269,6 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         String login_hint = params.get("login_hint");
         String lti_message_hint = params.get("lti_message_hint");
         String target_link_uri = params.get("target_link_uri");
-
-        // if (!platform.issuer.equals(iss)) {
-        //   loggedBadRequest(ctx, "Configured Issuer does not matched the OIDC request's issuer");
-        //   return;
-        // }
 
         String redirectUri = target_link_uri;
         try {
@@ -394,6 +389,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected void renderResourceLink(RoutingContext ctx, DecodedJWT jwt, Course course, LtiPlatform platform) {
     JsonObject model = new JsonObject()
       .put("reserves", course.getCurrentReserves())
+      .put("searchUrl", platform.searchUrl)
       .put("noReservesMessage", platform.noReservesMsg);
 
       logger.info("Current Reserves");
