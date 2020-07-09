@@ -1,0 +1,86 @@
+#%RAML 1.0
+title: Edge API - Course Reserves LTI Tool
+baseUri: https://github.com/folio-org/edge-lti-courses
+version: v1
+
+documentation:
+  - title: Edge API - Course Reserves LTI Tool
+    content: Edge API to allow LTI platforms to fetch course reserves
+
+/lti-courses:
+  /.well-known:
+    /jwks.json:
+      displayName: The Tool's JWKS
+      get:
+        description: Return the JWKS the tool uses to sign its JWTs
+  /oidc-login-init:
+    /{apiKeyPath}:
+      displayName: A third-party OIDC login initiation endpoint
+      description: https://openid.net/specs/openid-connect-core-1_0.html#ThirdPartyInitiatedLogin
+      get:
+        description: Begin a third-party OIDC login initiation flow
+        queryParameters:
+          iss:
+            description: The Issuer string of the Platform. This corresponds to a JWT's iss.
+            example: https://my-lms.edu/
+            required: true
+            type: string
+          login_hint:
+            description: Unused by this tool but required by the LTI Advantage spec.
+            required: true
+            type: string
+          target_link_uri:
+            description: The actual end-point that should be executed at the end of the OpenID Connect authentication flow.
+            example: https://folio-edge-apis.edu/lti-courses/launches/myApiKey
+            required: true
+            type: string
+        responses:
+          302:
+            description: "Success, redirecting to the LTI Platform's OAuth Authorization URL"
+          400:
+            description: "Bad request, missing some of the required parameters"
+            body:
+              text/plain:
+                example: "Missing required parameter: target_link_uri"
+  /launches:
+    /{apiKeyPath}:
+      displayName: Handler for LTI Launch requests
+      description: https://www.imsglobal.org/spec/lti/v1p3/#lti-launch
+      post:
+        body:
+          application/x-www-form-urlencoded:
+            properties:
+              id_token:
+                description: A JWT containing the LTI Resource Link Launch Request message, https://www.imsglobal.org/spec/lti/v1p3/#resource-link-launch-request-message
+                example: "eyJr[...]sjFs.G9iY[...]0aS1.HVyb[...]cmdld"
+                required: true
+                type: string
+              state:
+                description: The `state` that was passed to the OAuth2 authorization URL by the Tool in response to the OIDC Login Initiation
+                example: "vmeekvqcbvvxmbjvarhe"
+                required: true
+                type: string
+        responses:
+          200:
+            description: "Success, will render the course reserves or a 'none found' message"
+            body:
+              text/html:
+          400:
+            description: "Bad request, some data is missing or invalid"
+            body:
+              text/plain:
+                example: "Issuer not provided"
+          500:
+            description: "Some internal server error, including ones thrown by Folio"
+            body:
+              text/plain:
+                example: "Folio had an internal server error"
+/admin/health:
+  displayName: Health Check
+  get:
+    description: Health Check
+    responses:
+      200:
+        description: "Success"
+        body:
+          text/plain:

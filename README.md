@@ -74,3 +74,4 @@ Institutional users should be granted the following permission in order to use t
 
 - [OAuth 2.0 and OIDC (in plain English)](https://www.youtube.com/watch?v=996OiexHze0): I love this video as a primer on the oft-confusing OAuth/OIDC flow.
 - [Adding the reference implementation Tool to Sakai](https://github.com/sakaiproject/sakai/blob/master/basiclti/docs/IMS_RI.md): This is useful if you need something to pattern adding this Tool into your instance of Sakai (or other LMS).
+- [LTI Advantage Reference Implementations](https://lti-ri.imsglobal.org/): Useful for debugging platform/tool issues.

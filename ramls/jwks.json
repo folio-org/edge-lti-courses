@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "A JSON Web Key Set containing JSON Web Keys the tool uses to sign its JWTs",
+  "additionalProperties": false,
+  "properties": {
+    "keys": {
+      "description": "List of JWKs",
+      "id": "keys",
+      "type": "array",
+      "items": {
+          "type": "object",
+          "$ref": "jwk.json"
+      }
+    }
+  },
+  "required": [
+      "keys"
+  ]
+}

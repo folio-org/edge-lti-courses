@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "A JSON Web Key",
+  "additionalProperties": false,
+  "properties": {
+    "kty": {
+      "type": "string",
+      "description": "Key Type: https://tools.ietf.org/html/rfc7517#section-4.1"
+    },
+    "kid": {
+      "type": "string",
+      "description": "Key ID: https://tools.ietf.org/html/rfc7517#section-4.5"
+    },
+    "n": {
+      "type": "string",
+      "description": "RSA Key Modulus"
+    },
+    "e": {
+      "type": "string",
+      "description": "RSA Key Exponent"
+    },
+    "alg": {
+      "type": "string",
+      "description": "Algorithm: https://tools.ietf.org/html/rfc7517#section-4.4"
+    },
+    "use": {
+      "type": "string",
+      "description": "Public Key Use: https://tools.ietf.org/html/rfc7517#section-4.2"
+    }
+  },
+  "required": [
+    "kty",
+    "kid",
+    "n",
+    "e",
+    "alg",
+    "use"
+  ]
+}
