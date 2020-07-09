@@ -5,56 +5,63 @@ Copyright (C) 2018-2019 The Open Library Foundation
 This software is distributed under the terms of the Apache License,
 Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
 
-## Introduction
-
-Edge API to allow LTI platforms to fetch course reserves
-
 ## Overview
 
-The purpose of this edge API is to connect LMS such as Sakai and Blackboard to Folio via the [LTI Advantage](https://www.imsglobal.org/lti-advantage-overview) protocol for the purposes  of sharing the course reserves stored in Folio.
+The purpose of this edge API is to connect LMS such as Sakai and Blackboard (LTI Platforms) to Folio via the [LTI Advantage](https://www.imsglobal.org/lti-advantage-overview) protocol for the purposes of sharing the course reserves stored in Folio.
 
-LTI 1.3 contains [the Deep Linking 2.0 spec](https://www.imsglobal.org/spec/lti-dl/v2p0) which we use when communicating via LTI. The workflow is split into two phases that can occur weeks apart: finding a course, and then listing that course's reserves.
+To accomplish this, this module acts as an LTI Tool Provider. It adheres to two parts of the LTI Advantage spec to accomplish this. First, security is enabled via a [third-party-initiated OIDC Authentication flow](https://www.imsglobal.org/spec/security/v1p0/#platform-originating-messages) (this is a generic ). Second, the actual course reserves are requested and shown via messages using [the Resource Link spec](https://www.imsglobal.org/spec/lti/v1p3/#resource-link-launch-request-message).
 
-First, a course is found via LTI:
+The general use flow is as follows:
 
-1. The LTI platform (an LMS such as Sakai) sends a Deep Linking Request to this module. That request is a JWT signed with RSA256 by the platform.
-1. We verify that JWT using the stored copy of the platform's public key.
-1. We parse the JWT and find the course (context) that generated this request.
-1. We look up that course in mod-courses via Okapi and find it's `id`.
-1. We send a Deep Linking Response that contains a [link of type HTML fragment](https://www.imsglobal.org/spec/lti-dl/v2p0/#html-fragment). The fragment contains Javascript which contains the course's `id` and the URL of this module.
-1. The fragment is injected into the course page by the LMS.
+1. Upon navigation to the tool's page on an LMS such as Sakai (the LTI platform), the platform sends an OIDC login initiation request to the tool at a predefined URL.
+1. This request is handled in `LtiCoursesHandler::handleOidcLoginInit`. The request is parsed and validated.
+1. If the request is valid, it responds with an HTTP 302 Redirect to a preconfigured URL for that platform.
+1. The platform handles that redirect and bounces a request back to the tool to the tool launch endpoint with the LTI request itself.
+1. The tool parses the LTI request which contains info about which course is being viewed in the LMS. Based on that, it fetches the course and its reserves from mod-courses, renders them in HTML, and sends back the HTML.
+1. The platform takes the response and displays it in an iframe.
 
-Now that HTML has been placed into the LMS course site, we can dynamically fetch the course reserves each time the site is loaded.
+## Configuration
 
-1. When the page is loaded, the HTML fragment we injected in phase one will fetch the reserves for given course `id` from this module.
-1. We fetch the reserves from mod-courses and send it back to the page.
-1. The injected HTML fragment's Javascript takes the response and creates an HTML list based on it.
+Configuration is done in two ways. Values common to Folio Edge modules are configured using the methods made available in [edge-common](https://github.com/folio-org/edge-common). These handle things like the `port`, `okapi_url`, or `secure_store_props`.
+
+Other parameters defined this way include:
+
+- `lti_tool_private_key_file`: The path to a private key in PEM format. It is used to sign the JWTs that the tool creates.
+- `lti_tool_public_key_file`: The path to a public key in PEM format. It is used to create a JWKS endpoint.
+
+### LTI Platforms
+
+LTI Advantage requires that Platforms and Tools have knowledge of one other before they can safely and effectively communicate. This Tool is configured with the platforms it should respond to via the [`ui-lti-courses`](https://github.com/doytch/ui-lti-courses) module. More information about what is configurable can be found there, but at a minimum, this Tool needs to know the following about a platform:
+
+- Client ID: The ID that was generated _for the Tool_ by the Platform.
+- Issuer: Corresponds to the `iss` field in a JWT sent by the Platform.
+- JWKS URL: A location where the Tool can fetch the Platform's JWKS so that it can decode the JWTs sent and signed by the Platform.
+- OIDC Authorization URL: The URL that the Tool should redirect the Platform to after handling an OIDC Login Initiation.
+- Search URL: A templated URL that the Tool will use when rendering HTML links to the course reserve items.
 
 ## Security
 
-See [edge-common](https://github.com/folio-org/edge-common) for a description of the security model as it relates to the apiKey.
+[edge-common](https://github.com/folio-org/edge-common) contains a description of the security model as it relates to the `apiKey`. Additionally, further security is added due to LTI's use of an OIDC login flow.
 
-Furthermore, the communication via LTI requires additional security measures.
+### apiKey
+
+In my testing the most bulletproof method of passing the `apiKey` was as a path param, e.g., `https://my-server.edu/lti-courses/launches/myApiKey`, rather than a query or header param because some LMSs expect to have exclusive use of the query params and insert a second `?` in the URL.
 
 ### LTI RSA256 Keys
 
-LTI uses RSA256 encoding for its JWT messages. This tool requires the sending LTI platform's public key
-to verify the JWTs it receives, and a private key with which to sign the responses it sends back to the platform.
+LTI uses RSA256 encoding for its JWT messages. This tool requires the LTI platform's public key to verify the JWTs it receives, and a private key with which to sign the responses it sends back to the platform.
 
-Currently, these can be specified using the following config parameters:
-- `lti_tool_private_key_file`
-- `lti_tool_public_key_file`
-- `lti_platform_public_key_file`
+#### Tool Keys - Autogenerated
 
-The private key must be in PKCS8 format. To generate one, run the following
-> `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out src/main/resources/private.pem `
+This Tool can generate its own keys via `java.security.KeyPairGenerator`. This is the default use case if nothing else has been configured. The tool's public key is available as a JWKS via the `/lti-courses/.well-known/jwks.json` endpoint. If a Platform can be configured with a tool's JWKS endpoint, this is likely the simplest method of configuration.
 
-To generate it's corresponding public key, run the following
-> `openssl rsa -in src/main/resources/private.pem -pubout -out src/main/resources/public.pem`
+#### Tool Keys - Pregenerated
 
-### Fetching the LTI Tool Public Key
+Some LMSs/LTI Platforms do not support JWKS endpoints for a Tool. If your Platform generates tool keys or requires an externally-generated tool key, you can set this Tool's keys via the `lti_tool_private_key_file` and `lti_tool_public_key_file` configuration parameters, e.g., `java -Dlti_tool_private_key_file resources/private.pem ... -jar ...`
 
-The LTI platform needs this tool's public key to decode the responses we sign using our private key. To simplify this, the `/lti-courses/public-key` endpoint is available which responds with the encoded public key.
+#### Platform Keys
+
+The Platform's public key is specified via the [`ui-lti-courses`](https://github.com/doytch/ui-lti-courses) module by configuring a Platform's JWKS URL.
 
 ## Requires Permissions
 
@@ -63,23 +70,7 @@ Institutional users should be granted the following permission in order to use t
 - `course-reserves-storage.courses.collection.get`
 - `configuration.entries.collection.get`
 
-## Configuration
+## Additional Docs
 
-See [edge-common](https://github.com/folio-org/edge-common) for a description of how configuration works.
-
-Additionally, the module has other configuration parameters that can be set. Some are defined in the LTI RSA256 section. Others include:
-
-- `base_url`: The URL at which this edge module will be listening. This is used when sending back the HTML fragment that contains information about where to fetch the list of reserves. This is required to handle scenarios where the module is behind reverse proxies, load balancers, TLS handlers, etc.
-
-## Additional information
-
-### Issue tracker
-
-See project [EDGLTIC](https://issues.folio.org/browse/EDGLTIC)
-at the [FOLIO issue tracker](https://dev.folio.org/guidelines/issue-tracker).
-
-### Other documentation
-
-Other [modules](https://dev.folio.org/source-code/#server-side) are described,
-with further FOLIO Developer documentation at [dev.folio.org](https://dev.folio.org/)
-
+- [OAuth 2.0 and OIDC (in plain English)](https://www.youtube.com/watch?v=996OiexHze0): I love this video as a primer on the oft-confusing OAuth/OIDC flow.
+- [Adding the reference implementation Tool to Sakai](https://github.com/sakaiproject/sakai/blob/master/basiclti/docs/IMS_RI.md): This is useful if you need something to pattern adding this Tool into your instance of Sakai (or other LMS).
