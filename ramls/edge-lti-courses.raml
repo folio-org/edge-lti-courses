@@ -44,8 +44,74 @@ documentation:
                 example: "Missing required parameter: target_link_uri"
   /launches:
     /{apiKeyPath}:
-      displayName: Handler for LTI Launch requests
-      description: https://www.imsglobal.org/spec/lti/v1p3/#lti-launch
+      displayName: Handler for LTI Launch requests https://www.imsglobal.org/spec/lti/v1p3/#lti-launch
+      description: This endpoint uses the LTI context claim's "title" property to lookup the course against the "Course code" in the Folio Courses app
+      post:
+        body:
+          application/x-www-form-urlencoded:
+            properties:
+              id_token:
+                description: A JWT containing the LTI Resource Link Launch Request message, https://www.imsglobal.org/spec/lti/v1p3/#resource-link-launch-request-message
+                example: "eyJr[...]sjFs.G9iY[...]0aS1.HVyb[...]cmdld"
+                required: true
+                type: string
+              state:
+                description: The `state` that was passed to the OAuth2 authorization URL by the Tool in response to the OIDC Login Initiation
+                example: "vmeekvqcbvvxmbjvarhe"
+                required: true
+                type: string
+        responses:
+          200:
+            description: "Success, will render the course reserves or a 'none found' message"
+            body:
+              text/html:
+          400:
+            description: "Bad request, some data is missing or invalid"
+            body:
+              text/plain:
+                example: "Issuer not provided"
+          500:
+            description: "Some internal server error, including ones thrown by Folio"
+            body:
+              text/plain:
+                example: "Folio had an internal server error"
+  /externalIdLaunches:
+    /{apiKeyPath}:
+      displayName: Handler for LTI Launch requests https://www.imsglobal.org/spec/lti/v1p3/#lti-launch
+      description: This endpoint uses the LTI context claim's "title" property to lookup the course against the "External ID" in the Folio Courses app
+      post:
+        body:
+          application/x-www-form-urlencoded:
+            properties:
+              id_token:
+                description: A JWT containing the LTI Resource Link Launch Request message, https://www.imsglobal.org/spec/lti/v1p3/#resource-link-launch-request-message
+                example: "eyJr[...]sjFs.G9iY[...]0aS1.HVyb[...]cmdld"
+                required: true
+                type: string
+              state:
+                description: The `state` that was passed to the OAuth2 authorization URL by the Tool in response to the OIDC Login Initiation
+                example: "vmeekvqcbvvxmbjvarhe"
+                required: true
+                type: string
+        responses:
+          200:
+            description: "Success, will render the course reserves or a 'none found' message"
+            body:
+              text/html:
+          400:
+            description: "Bad request, some data is missing or invalid"
+            body:
+              text/plain:
+                example: "Issuer not provided"
+          500:
+            description: "Some internal server error, including ones thrown by Folio"
+            body:
+              text/plain:
+                example: "Folio had an internal server error"
+  /registrarIdLaunches:
+    /{apiKeyPath}:
+      displayName: Handler for LTI Launch requests https://www.imsglobal.org/spec/lti/v1p3/#lti-launch
+      description: This endpoint uses the LTI context claim's "title" property to lookup the course against the "Registrar ID" in the Folio Courses app
       post:
         body:
           application/x-www-form-urlencoded:

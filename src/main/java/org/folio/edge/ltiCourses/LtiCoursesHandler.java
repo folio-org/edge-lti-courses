@@ -2,12 +2,8 @@ package org.folio.edge.ltiCourses;
 
 import java.net.URL;
 import java.net.URLEncoder;
-import java.time.Instant;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.Date;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
@@ -19,13 +15,10 @@ import org.folio.edge.ltiCourses.cache.OidcStateCache;
 import org.folio.edge.ltiCourses.model.Course;
 import org.folio.edge.ltiCourses.model.LtiPlatform;
 import org.folio.edge.ltiCourses.utils.LtiContextClaim;
-import org.folio.edge.ltiCourses.utils.LtiDeepLinkSettingsClaim;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClient;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
-import org.folio.edge.ltiCourses.utils.LtiPlatformClientFactory;
 
 import static org.folio.edge.ltiCourses.Constants.LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST;
-import static org.folio.edge.ltiCourses.Constants.LTI_MESSAGE_TYPE_DEEP_LINK_REQUEST;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
@@ -39,7 +32,6 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
 
 public class LtiCoursesHandler extends org.folio.edge.core.Handler {
-  protected LtiPlatformClientFactory pcf;
   protected RSAPrivateKey privateKey;
   protected JadeTemplateEngine jadeTemplateEngine;
   protected String toolPublicKey;
@@ -50,13 +42,11 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     SecureStore secureStore,
     LtiCoursesOkapiClientFactory ocf,
     ApiKeyHelper apiKeyHelper,
-    LtiPlatformClientFactory pcf,
     RSAPrivateKey privateKey,
     JadeTemplateEngine jadeTemplateEngine
   ) {
     super(secureStore, ocf, apiKeyHelper);
 
-    this.pcf = pcf;
     this.privateKey = privateKey;
     this.jadeTemplateEngine = jadeTemplateEngine;
   }
@@ -178,7 +168,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     }, t -> handleProxyException(ctx, t));
   }
 
-  protected void handleLaunch(RoutingContext ctx, String courseIdType, Boolean isDeepLinkingRoute) {
+  protected void handleLaunch(RoutingContext ctx, String courseIdType) {
     String id_token = ctx.request().formAttributes().get("id_token");
     if (id_token == null || id_token.isEmpty()) {
       loggedBadRequest(ctx, "id_token is required and was not found");
@@ -206,7 +196,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         }
 
         // Validate the JWT
-        Algorithm algorithm = Algorithm.RSA256(platformPublicKey, privateKey);
+        Algorithm algorithm = Algorithm.RSA256(platformPublicKey, null);
         algorithm.verify(jwt);
 
         if (jwt.getAudience().contains(platform.clientId) == false) {
@@ -234,8 +224,6 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
             String message_type = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/message_type").asString();
             if (message_type.equals(LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST)) {
               renderResourceLink(ctx, jwt, course, platform);
-            } else if (message_type.equals(LTI_MESSAGE_TYPE_DEEP_LINK_REQUEST)) {
-              renderDeepLink(ctx, jwt, course, platform, algorithm);
             } else {
               loggedBadRequest(ctx, "Invalid message_type claim: " + message_type);
             }
@@ -297,85 +285,15 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   }
 
   protected void handleRequest(RoutingContext ctx) {
-    handleLaunch(ctx, "courseNumber", false);
+    handleLaunch(ctx, "courseNumber");
   }
 
-  protected void handleDeepLinkRequestCourseNumber(RoutingContext ctx) {
-    handleLaunch(ctx, "courseNumber", true);
+  protected void handleRequestCourseExternalId(RoutingContext ctx) {
+    handleLaunch(ctx, "courseListing.externalId");
   }
 
-  protected void handleDeepLinkRequestCourseExternalId(RoutingContext ctx) {
-    handleLaunch(ctx, "courseListing.externalId", true);
-  }
-
-  protected void handleDeepLinkRequestCourseRegistrarId(RoutingContext ctx) {
-    handleLaunch(ctx, "courseListing.registrarId", true);
-  }
-
-  protected void handleGetReservesById(RoutingContext ctx) {
-    handleCommon(ctx,
-      new String[] { "courseId" },
-      new String[] {},
-      (client, params) -> {
-        logger.info("calling LtiCoursesOkapiClient::getCourseReserves");
-
-        ((LtiCoursesOkapiClient) client).getCourseReserves(
-          params.get("courseId"),
-          resp -> handleProxyResponse(ctx, resp),
-          t -> handleProxyException(ctx, t)
-        );
-      }
-    );
-  }
-
-  protected void renderDeepLink(RoutingContext ctx, DecodedJWT jwt, Course course, LtiPlatform platform, Algorithm algorithm) {
-    JsonObject deepLinkVars = new JsonObject()
-      .put("id", course.courseListingId);
-    // .put("startDate", course.startDate)
-    // .put("endDate", course.endDate)
-    // .put("reservesUrl", baseUrl + "/lti-courses/reserves/" + courseListingId + "?apiKey=" + keyHelper.getApiKey(ctx));
-
-    jadeTemplateEngine.render(deepLinkVars, "templates/HTMLDeepLink", deepLink -> {
-      LtiDeepLinkSettingsClaim deepLinkSettingsClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings").as(LtiDeepLinkSettingsClaim.class);
-      logger.info("DeepLinkHTML: " + deepLink.result());
-
-      HashMap<String,String> link = new HashMap<String,String>();
-      link.put("type", "html");
-      link.put("title", deepLinkSettingsClaim.title);
-      link.put("html", deepLink.result().toString());
-
-      ArrayList<HashMap<String, String>> links = new ArrayList<HashMap<String, String>>();
-      links.add(link);
-
-      String deepLinkResponse = JWT.create()
-        .withIssuer(jwt.getAudience().get(0))
-        .withAudience(jwt.getIssuer())
-        .withExpiresAt(Date.from(Instant.now().plusSeconds(5 * 60)))
-        .withIssuedAt(new Date())
-        .withClaim("nonce", jwt.getClaim("nonce").asString())
-        .withClaim("https://purl.imsglobal.org/spec/lti/claim/message_type", "LtiDeepLinkingResponse")
-        .withClaim("https://purl.imsglobal.org/spec/lti/claim/version", "1.3.0")
-        .withClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id", jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/deployment_id").asString())
-        .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/data", deepLinkSettingsClaim.data)
-        .withClaim("https://purl.imsglobal.org/spec/lti-dl/claim/content_items", links)
-        .sign(algorithm);
-
-      JsonObject responseFormObject = new JsonObject()
-        .put("deepLinkReturnUrl", deepLinkSettingsClaim.deep_link_return_url)
-        .put("jwt", deepLinkResponse);
-
-      jadeTemplateEngine.render(responseFormObject, "templates/DeepLinkResponseForm", deepLinkResponseForm -> {
-        if (!deepLinkResponseForm.succeeded()) {
-          String error = "Failed to render DeepLinkResponseForm template: " + deepLinkResponseForm.cause();
-          logger.error(error);
-          internalServerError(ctx, error);
-          return;
-        }
-
-        ctx.response().setStatusCode(200);
-        ctx.response().end(deepLinkResponseForm.result());
-      });
-    });
+  protected void handleRequestCourseRegistrarId(RoutingContext ctx) {
+    handleLaunch(ctx, "courseListing.registrarId");
   }
 
   protected void renderResourceLink(RoutingContext ctx, DecodedJWT jwt, Course course, LtiPlatform platform) {

@@ -16,7 +16,6 @@ import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.EdgeVerticle;
 import org.folio.edge.ltiCourses.cache.OidcStateCache;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
-import org.folio.edge.ltiCourses.utils.LtiPlatformClientFactory;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
@@ -31,6 +30,9 @@ public class MainVerticle extends EdgeVerticle {
     super();
   }
 
+  // We don't currently use the tool keys because this module only supports Resource Links at the moment which
+  // are not signed. Future development to add Deep Linking (or other parts of the LTI spec) would require
+  // keys so this has been kept in for now.
   final private KeyPair getToolKeyPair() {
     final String toolPrivateKeyFile = System.getProperty(LTI_TOOL_PRIVATE_KEY_FILE);
     final String toolPublicKeyFile = System.getProperty(LTI_TOOL_PUBLIC_KEY_FILE);
@@ -88,18 +90,12 @@ public class MainVerticle extends EdgeVerticle {
         reqTimeoutMs
     );
 
-    final LtiPlatformClientFactory pcf = new LtiPlatformClientFactory(
-      vertx,
-      reqTimeoutMs
-    );
-
-    final ApiKeyHelper apiKeyHelper = new ApiKeyHelper("HEADER,PARAM,PATH");
+    final ApiKeyHelper apiKeyHelper = new ApiKeyHelper("PATH");
 
     final LtiCoursesHandler ltiCoursesHandler = new LtiCoursesHandler(
       secureStore,
       ocf,
       apiKeyHelper,
-      pcf,
       (RSAPrivateKey)toolKeyPair.getPrivate(),
       jadeTemplateEngine
     );
@@ -112,19 +108,11 @@ public class MainVerticle extends EdgeVerticle {
     router.route(HttpMethod.GET, "/admin/health").handler(this::handleHealthCheck);
     router.route(HttpMethod.GET, "/lti-courses/.well-known/jwks.json").handler(jwksHandler::handleGetJWKS);
 
-    router.route(HttpMethod.GET, "/lti-courses/oidc-login-init").handler(ltiCoursesHandler::handleOidcLoginInit);
     router.route(HttpMethod.GET, "/lti-courses/oidc-login-init/:apiKeyPath").handler(ltiCoursesHandler::handleOidcLoginInit);
-    router.route(HttpMethod.POST, "/lti-courses/launches").handler(ltiCoursesHandler::handleRequest);
     router.route(HttpMethod.POST, "/lti-courses/launches/:apiKeyPath").handler(ltiCoursesHandler::handleRequest);
+    router.route(HttpMethod.POST, "/lti-courses/externalIdLaunches/:apiKeyPath").handler(ltiCoursesHandler::handleRequestCourseExternalId);
+    router.route(HttpMethod.POST, "/lti-courses/registrarIdLaunches/:apiKeyPath").handler(ltiCoursesHandler::handleRequestCourseRegistrarId);
 
-    // Takes an LTI DeepLinkRequest containing a course ID and returns embeddable HTML
-    // that contains an endpoint for fetching the reserves for that course.
-    router.route(HttpMethod.POST, "/lti-courses/deep-link-request").handler(ltiCoursesHandler::handleDeepLinkRequestCourseNumber);
-    router.route(HttpMethod.POST, "/lti-courses/deep-link-request/externalId").handler(ltiCoursesHandler::handleDeepLinkRequestCourseRegistrarId);
-    router.route(HttpMethod.POST, "/lti-courses/deep-link-request/registrarId").handler(ltiCoursesHandler::handleDeepLinkRequestCourseExternalId);
-
-    // The endpoint returned in the LTI DeepLinkResponse.
-    router.route(HttpMethod.GET, "/lti-courses/reserves/:courseId").handler(ltiCoursesHandler::handleGetReservesById);
     return router;
   }
 }
