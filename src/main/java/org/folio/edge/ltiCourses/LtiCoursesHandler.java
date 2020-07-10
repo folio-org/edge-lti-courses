@@ -108,7 +108,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   ) {
     LtiContextClaim contextClaim = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/context").as(LtiContextClaim.class);
     String courseTitle = contextClaim.title;
-    logger.info("Class ID: " + contextClaim.id + " Title: " + contextClaim.title + " Label: " + contextClaim.label);
+    logger.info("Class: " + contextClaim.title);
 
     String query = "";
     try {
@@ -119,7 +119,6 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
       return;
     }
 
-    logger.info("calling LtiCoursesOkapiClient::getCourse");
     client.getCourse(query, courseResp -> {
       if (courseResp.statusCode() != 200) {
         internalServerError(ctx, "Folio had an internal server error");
@@ -183,7 +182,6 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
       new String[] {},
       jwt.getIssuer(),
       (client, params, platform) -> {
-        logger.info("JWKS: " + platform.jwksUrl);
         // Fetch the JWK so we can validate it.
         RSAPublicKey platformPublicKey;
         try {
