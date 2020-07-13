@@ -39,7 +39,7 @@ public class CourseTest {
 
   @Test
   public void testCourseWithNoReserves() {
-    logger.info("=== Test current reserves calculation with no reserves  - Success ===");
+    logger.info("=== Test current reserves calculation with no reserves... ===");
 
     Course course = new Course(courseJson);
 
@@ -119,7 +119,7 @@ public class CourseTest {
 
   @Test
   public void testCourseWithExpiredItemReserves() {
-    logger.info("=== Test current reserves calculation with a reserve that is expired based on the reserve's overriding date  - Success ===");
+    logger.info("=== Test current reserves calculation with a reserve that is expired based on the reserve's overriding date... ===");
 
     Course course = new Course(courseJson);
 
@@ -143,7 +143,7 @@ public class CourseTest {
 
   @Test
   public void testCourseWithUnstartedItemReserves() {
-    logger.info("=== Test current reserves calculation with a reserve that hasn't started based on the reserve's overriding date  - Success ===");
+    logger.info("=== Test current reserves calculation with a reserve that hasn't started based on the reserve's overriding date... ===");
 
     Course course = new Course(courseJson);
 
@@ -167,7 +167,7 @@ public class CourseTest {
 
   @Test
   public void testCourseWithCurrentItemReserves() {
-    logger.info("=== Test current reserves calculation with a reserve that is valid based on the reserve's overriding date  - Success ===");
+    logger.info("=== Test current reserves calculation with a reserve that is valid based on the reserve's overriding date... ===");
 
     Course course = new Course(courseJson);
 
@@ -192,7 +192,7 @@ public class CourseTest {
 
   @Test
   public void testCourseWithFirstDayOfValidityItemReserve() {
-    logger.info("=== Test current reserves calculation with a reserve that is on its first day of validity based on the reserve's overriding date  - Success ===");
+    logger.info("=== Test current reserves calculation with a reserve that is on its first day of validity based on the reserve's overriding date... ===");
 
     Course course = new Course(courseJson);
 
@@ -217,7 +217,7 @@ public class CourseTest {
 
   @Test
   public void testCourseWithLastDayOfValidityItemReserve() {
-    logger.info("=== Test current reserves calculation with a reserve that is on its last day of validity based on the reserve's overriding date  - Success ===");
+    logger.info("=== Test current reserves calculation with a reserve that is on its last day of validity based on the reserve's overriding date... ===");
 
     Course course = new Course(courseJson);
 
@@ -242,7 +242,7 @@ public class CourseTest {
 
   @Test
   public void testCourseWithLastDayBeforeValidityItemReserve() {
-    logger.info("=== Test current reserves calculation with a reserve that is on its last day before it's valid based on the reserve's overriding date  - Success ===");
+    logger.info("=== Test current reserves calculation with a reserve that is on its last day before it's valid based on the reserve's overriding date... ===");
 
     Course course = new Course(courseJson);
 
@@ -266,7 +266,7 @@ public class CourseTest {
 
   @Test
   public void testCourseWithFirstDayAfterValidityItemReserve() {
-    logger.info("=== Test current reserves calculation with a reserve that is on its first day after it was valid based on the reserve's overriding date  - Success ===");
+    logger.info("=== Test current reserves calculation with a reserve that is on its first day after it was valid based on the reserve's overriding date... ===");
 
     Course course = new Course(courseJson);
 
@@ -290,7 +290,7 @@ public class CourseTest {
 
   @Test
   public void testCourseWithSomeValidItems() {
-    logger.info("=== Test current reserves calculation with reserves of mixed validity  - Success ===");
+    logger.info("=== Test current reserves calculation with reserves of mixed validity... ===");
 
     Course course = new Course(courseJson);
 

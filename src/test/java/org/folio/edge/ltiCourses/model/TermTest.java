@@ -13,7 +13,7 @@ public class TermTest {
   @Test
   public void testDatetimes() {
 
-    logger.info("=== Test Parsing of Term with datetime strings - Success ===");
+    logger.info("=== Test parsing of Term with datetime strings... ===");
 
     JsonObject json = new JsonObject()
       .put("startDate", "2020-09-02T04:00:00.000Z")
@@ -30,7 +30,7 @@ public class TermTest {
   @Test
   public void testDates() {
 
-    logger.info("=== Test Parsing of Term with date strings - Success ===");
+    logger.info("=== Test parsing of Term with date strings... ===");
 
     JsonObject json = new JsonObject()
       .put("startDate", "2020-09-02")
@@ -47,7 +47,7 @@ public class TermTest {
   @Test
   public void testInvalidDate() {
 
-    logger.info("=== Test Parsing of Term with unknown datetime formats - Success ===");
+    logger.info("=== Test parsing of Term with unknown datetime formats... ===");
 
     JsonObject json = new JsonObject()
       .put("startDate", "2020-09-02Txzyfoobar")
@@ -64,7 +64,7 @@ public class TermTest {
   @Test
   public void testEmptyDate() {
 
-    logger.info("=== Test Parsing of Term String with empty end date - Success ===");
+    logger.info("=== Test parsing of Term String with empty end date... ===");
 
     JsonObject json = new JsonObject()
       .put("startDate", "2020-09-02T04:00:00.000Z")

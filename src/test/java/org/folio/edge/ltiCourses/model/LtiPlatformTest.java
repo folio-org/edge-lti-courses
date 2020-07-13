@@ -17,7 +17,7 @@ public class LtiPlatformTest {
 
   @Test
   public void testConfigurationParsing() {
-    logger.info("=== Test Parsing of Configuration - Success ===");
+    logger.info("=== Test parsing of configuration... ===");
 
     String validConfiguration = "{"
     + "  \"configs\": ["

@@ -12,7 +12,7 @@ public class ReserveTest {
 
   @Test
   public void testBarcode() {
-    logger.info("=== Test Parsing of Reserve with Barcode - Success ===");
+    logger.info("=== Test parsing of Reserve with Barcode... ===");
 
     String reserveWithBarcode = "{"
     + "    \"itemId\" : \"100d10bf-2f06-4aa0-be15-0b95b2d9f9e3\","
@@ -31,7 +31,7 @@ public class ReserveTest {
 
   @Test
   public void testScannedItem() {
-    logger.info("=== Test Parsing of Reserve with Scanned Item - Success ===");
+    logger.info("=== Test parsing of Reserve with scanned item... ===");
 
     String reserveWithScannedItem = "{"
     + "    \"itemId\" : \"100d10bf-2f06-4aa0-be15-0b95b2d9f9e3\","
@@ -54,7 +54,7 @@ public class ReserveTest {
 
   @Test
   public void testPrimaryContributor() {
-    logger.info("=== Test Parsing of Reserve with Primary Contributor - Success ===");
+    logger.info("=== Test parsing of Reserve with Primary Contributor... ===");
 
     String reserveWithPrimaryContributor = "{"
     + "    \"itemId\" : \"100d10bf-2f06-4aa0-be15-0b95b2d9f9e3\","
@@ -83,7 +83,7 @@ public class ReserveTest {
 
   @Test
   public void testPrimaryContributorFallback() {
-    logger.info("=== Test Parsing of Reserve with Primary Contributor Fallback - Success ===");
+    logger.info("=== Test parsing of Reserve with Primary Contributor Fallback... ===");
 
     String reserveWithPrimaryContributor = "{"
     + "    \"itemId\" : \"100d10bf-2f06-4aa0-be15-0b95b2d9f9e3\","
@@ -111,7 +111,7 @@ public class ReserveTest {
 
   @Test
   public void testSkeleton() {
-    logger.info("=== Test Parsing of Reserve with just itemId - Success ===");
+    logger.info("=== Test parsing of Reserve with just itemId... ===");
 
     String reserveWithDates = "{"
     + "    \"itemId\" : \"some-id\""
@@ -132,7 +132,7 @@ public class ReserveTest {
 
   @Test
   public void testDates() {
-    logger.info("=== Test Parsing of Reserve with Dates - Success ===");
+    logger.info("=== Test parsing of Reserve with dates... ===");
 
     String reserveWithDates = "{"
     + "    \"itemId\" : \"some-id\","
