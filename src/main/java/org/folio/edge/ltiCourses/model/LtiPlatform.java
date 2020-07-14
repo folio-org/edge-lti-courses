@@ -22,13 +22,13 @@ public class LtiPlatform {
         .getString("value")
       );
 
-      this.clientId = platform.getString("clientId");
-      this.cssUrl = platform.getString("cssUrl");
-      this.issuer = platform.getString("issuer");
-      this.jwksUrl = platform.getString("jwksUrl");
-      this.oidcAuthUrl = platform.getString("oidcAuthUrl");
-      this.noReservesMessage = platform.getString("noReservesMessage", DEFAULT_RESERVES_NOT_FOUND_MESSAGE);
-      this.searchUrl = platform.getString("searchUrl");
+    this.clientId = platform.getString("clientId");
+    this.cssUrl = platform.getString("cssUrl");
+    this.issuer = platform.getString("issuer");
+    this.jwksUrl = platform.getString("jwksUrl");
+    this.oidcAuthUrl = platform.getString("oidcAuthUrl");
+    this.noReservesMessage = platform.getString("noReservesMessage", DEFAULT_RESERVES_NOT_FOUND_MESSAGE);
+    this.searchUrl = platform.getString("searchUrl");
   }
 
   public JsonObject asJsonObject() {
