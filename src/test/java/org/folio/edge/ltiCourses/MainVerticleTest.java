@@ -6,7 +6,9 @@ import static org.folio.edge.core.Constants.SYS_PORT;
 import static org.folio.edge.core.Constants.SYS_REQUEST_TIMEOUT_MS;
 import static org.folio.edge.core.Constants.SYS_SECURE_STORE_PROP_FILE;
 import static org.folio.edge.core.Constants.TEXT_PLAIN;
+import static org.folio.edge.core.Constants.APPLICATION_JSON;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.spy;
@@ -28,6 +30,8 @@ import com.jayway.restassured.response.Response;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -47,9 +51,9 @@ public class MainVerticleTest {
   private static final Logger logger = Logger.getLogger(MainVerticleTest.class);
 
   private static final String titleId = "0c8e8ac5-6bcc-461e-a8d3-4b55a96addc8";
-  private static final String apiKey = ApiKeyUtils.generateApiKey(10, "diku", "diku_admin");
+  private static final String apiKey = ApiKeyUtils.generateApiKey(10, "tester", "tester");
   private static final String badApiKey = apiKey + "0000";
-  private static final String unknownTenantApiKey = ApiKeyUtils.generateApiKey(10, "bogus", "diku");;
+  private static final String unknownTenantApiKey = ApiKeyUtils.generateApiKey(10, "bogus", "tester");;
 
   private static final long requestTimeoutMs = 3000L;
 
@@ -72,7 +76,6 @@ public class MainVerticleTest {
     System.setProperty(SYS_PORT, String.valueOf(serverPort));
     System.setProperty(SYS_OKAPI_URL, "http://localhost:" + okapiPort);
     System.setProperty(SYS_SECURE_STORE_PROP_FILE, "src/main/resources/ephemeral.properties");
-    System.setProperty(SYS_LOG_LEVEL, "DEBUG");
     System.setProperty(SYS_REQUEST_TIMEOUT_MS, String.valueOf(requestTimeoutMs));
 
     final DeploymentOptions opt = new DeploymentOptions();
@@ -115,6 +118,34 @@ public class MainVerticleTest {
       .response();
 
     assertEquals("\"OK\"", resp.body().asString());
+  }
+
+  @Test
+  public void testJWKSEndpoint(TestContext context) {
+    logger.info("=== Test the JWKS endpoint... ===");
+
+    final Response resp = RestAssured
+      .get("/lti-courses/.well-known/jwks.json")
+      .then()
+      .contentType(APPLICATION_JSON)
+      .statusCode(200)
+      .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+      .extract()
+      .response();
+
+    JsonObject jwks = new JsonObject(resp.asString());
+    JsonArray keys = jwks.getJsonArray("keys");
+    assertNotNull(keys);
+
+    JsonObject key = keys.getJsonObject(0);
+    assertNotNull(key);
+
+    assertNotNull(key.getString("kid"));
+    assertNotNull(key.getString("kty"));
+    assertNotNull(key.getString("n"));
+    assertNotNull(key.getString("e"));
+    assertNotNull(key.getString("alg"));
+    assertEquals("sig", key.getString("use"));
   }
 
   @Test
