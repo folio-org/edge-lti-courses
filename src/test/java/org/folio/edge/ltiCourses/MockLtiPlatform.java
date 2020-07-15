@@ -1,18 +1,50 @@
 package org.folio.edge.ltiCourses;
 
+import org.apache.log4j.Logger;
+
 import io.vertx.core.json.JsonObject;
 
 public class MockLtiPlatform {
-  public static String clientId = "12345";
-  public static String cssUrl = "https://css.url/styles.css";
-  public static String issuer = "https://duki.edu/";
-  public static String jwksUrl = "https://duki.edu/jwks.json";
-  public static String noReservesMessage = "No reserves :(";
-  public static String oauthTokenUrl = "https://duki.edu/token";
-  public static String oidcAuthUrl = "https://duki.edu/oidc";
-  public static String searchUrl = "https://duki.edu/search";
+  public int port;
+  public String clientId;
+  public String cssUrl;
+  public String issuer;
+  public String jwksUrl;
+  public String noReservesMessage;
+  public String oauthTokenUrl;
+  public String oidcAuthUrl;
+  public String searchUrl;
 
-  public static JsonObject asJsonObject() {
+  public static MockLtiPlatform instance = null;
+
+  private static final Logger logger = Logger.getLogger(MockLtiPlatform.class);
+
+  public static MockLtiPlatform getInstance() {
+    if (instance == null) {
+      logger.error("MockLtiPlatform not initialized, must call initialize() before getInstance()");
+    }
+
+    return instance;
+  }
+
+  public static MockLtiPlatform initialize(int port) {
+    instance = new MockLtiPlatform(port);
+    return instance;
+  }
+
+  private MockLtiPlatform(int port) {
+    this.port = port;
+    this.clientId = "12345";
+    this.cssUrl = "http://localhost:" + port + "/styles.css";
+    this.issuer = "http://localhost:" + port + "/";
+    this.jwksUrl = "http://localhost:" + port + "/jwks.json";
+    this.noReservesMessage = "No reserves :(";
+    this.oauthTokenUrl = "http://localhost:" + port + "/token";
+    this.oidcAuthUrl = "http://localhost:" + port + "/oidc";
+    this.searchUrl = "http://localhost:" + port + "/search";
+  }
+
+  public JsonObject asJsonObject() {
     return new JsonObject()
       .put("clientId", clientId)
       .put("cssUrl", cssUrl)

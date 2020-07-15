@@ -44,6 +44,7 @@ import org.apache.log4j.Logger;
 import org.folio.edge.core.utils.ApiKeyUtils;
 import org.folio.edge.core.utils.test.TestUtils;
 import org.folio.edge.ltiCourses.utils.LtiCoursesMockOkapi;
+import org.folio.edge.ltiCourses.utils.MockLtiPlatformServer;
 
 @RunWith(VertxUnitRunner.class)
 public class MainVerticleTest {
@@ -59,17 +60,26 @@ public class MainVerticleTest {
 
   private static Vertx vertx;
   private static LtiCoursesMockOkapi mockOkapi;
+  private static MockLtiPlatformServer mockLtiPlatformServer;
+
+  private static MockLtiPlatform platform;
 
   @BeforeClass
   public static void setUpOnce(TestContext context) throws Exception {
     int okapiPort = TestUtils.getPort();
     int serverPort = TestUtils.getPort();
+    int platformPort = TestUtils.getPort();
 
     List<String> knownTenants = new ArrayList<>();
     knownTenants.add(ApiKeyUtils.parseApiKey(apiKey).tenantId);
 
     mockOkapi = spy(new LtiCoursesMockOkapi(okapiPort, knownTenants));
     mockOkapi.start(context);
+
+    mockLtiPlatformServer = spy(new MockLtiPlatformServer(platformPort));
+    mockLtiPlatformServer.start(context);
+
+    platform = MockLtiPlatform.initialize(platformPort);
 
     vertx = Vertx.vertx();
 
@@ -110,7 +120,7 @@ public class MainVerticleTest {
 
     final Response resp = RestAssured
       .get("/admin/health")
-      .then()
+    .then()
       .contentType(TEXT_PLAIN)
       .statusCode(200)
       .header(HttpHeaders.CONTENT_TYPE, TEXT_PLAIN)
@@ -126,7 +136,7 @@ public class MainVerticleTest {
 
     final Response resp = RestAssured
       .get("/lti-courses/.well-known/jwks.json")
-      .then()
+    .then()
       .contentType(APPLICATION_JSON)
       .statusCode(200)
       .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
@@ -150,7 +160,7 @@ public class MainVerticleTest {
 
   @Test
   public void testOidcLoginInitBadAPIKey(TestContext context) {
-    logger.info("=== Test OIDC Login Initiation via GET with a bad api key ===");
+    logger.info("=== Test GET OIDC Login Initiation with a bad api key... ===");
 
     RestAssured
       .given()
@@ -159,7 +169,7 @@ public class MainVerticleTest {
         .param("target_link_uri", "http://redirect.edu/to-here")
       .when()
         .get("/lti-courses/oidc-login-init/" + badApiKey)
-        .then()
+      .then()
         .contentType(TEXT_PLAIN)
         .statusCode(401)
         .header(HttpHeaders.CONTENT_TYPE, TEXT_PLAIN)
@@ -168,37 +178,46 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testOidcLoginInitGoodAPIKey(TestContext context) {
-    logger.info("=== Test OIDC Login Initiation via GET ===");
+  public void testOidcLoginInitUnknownPlatform(TestContext context) {
+    logger.info("=== Test GET OIDC Login Initiation with unknown LTI Platform... ===");
 
-    final Response response = RestAssured
+    RestAssured
       .given()
         .redirects().follow(false)
-        .param("iss", MockLtiPlatform.issuer)
+        .param("iss", "http://made-up-unsecure-issuer.biz/")
         .param("login_hint", "foobar")
         .param("target_link_uri", "http://redirect.edu/to-here")
       .when()
         .get("/lti-courses/oidc-login-init/" + apiKey)
-        .then()
+      .then()
+        .statusCode(400)
+        .extract()
+        .response();
+  }
+
+  @Test
+  public void testOidcLoginInitGoodAPIKey(TestContext context) {
+    logger.info("=== Test GET OIDC Login Initiation... ===");
+
+    final Response response = RestAssured
+      .given()
+        .redirects().follow(false)
+        .param("iss", platform.issuer)
+        .param("login_hint", "foobar")
+        .param("target_link_uri", "http://redirect.edu/to-here")
+      .when()
+        .get("/lti-courses/oidc-login-init/" + apiKey)
+      .then()
         .statusCode(302)
         .extract()
         .response();
 
 
-    assertThat(response.header("location"), containsString(MockLtiPlatform.oidcAuthUrl));
-    URI uri;
-    try {
-      uri = new URI(response.header("location"));
-    } catch (Exception e) {
-      logger.error("Failed to parse \"location\" header in response");
-      return;
-    }
+    assertThat(response.header("location"), containsString(platform.oidcAuthUrl));
 
-    List<NameValuePair> paramList = URLEncodedUtils.parse(uri.getQuery(), Charset.forName("UTF-8"));
-    HashMap<String, String> params = new HashMap<String, String>();
-    paramList.forEach(param -> { params.put(param.getName(), param.getValue()); });
+    HashMap<String, String> params = getOIDCLoginQueryParams(response.header("location"));
 
-    assertEquals(MockLtiPlatform.clientId, params.get("client_id"));
+    assertEquals(platform.clientId, params.get("client_id"));
     assertEquals("foobar", params.get("login_hint"));
     assertEquals("none", params.get("prompt"));
     assertEquals("http://redirect.edu/to-here", params.get("redirect_uri"));
@@ -207,4 +226,50 @@ public class MainVerticleTest {
     assertEquals("openid", params.get("scope"));
   }
 
+  // @Test
+  // public void testCourseNotFound(TestContext context) {
+  //   logger.info("=== Test Resource Link request for course not found... ===");
+
+  //   final Response oidcResponse = performOIDCLoginInit();
+  //   HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+
+  //   String nonce = oidcResponseParams.get("nonce");
+  //   String state = oidcResponseParams.get("state");
+
+  //   RestAssured
+  //     .given()
+  //       .params()
+  // }
+
+
+  private Response performOIDCLoginInit() {
+    return RestAssured
+      .given()
+        .redirects().follow(false)
+        .param("iss", platform.issuer)
+        .param("login_hint", "foobar")
+        .param("target_link_uri", "/lti-courses/launches/" + apiKey)
+      .when()
+        .get("/lti-courses/oidc-login-init/" + apiKey)
+      .then()
+        .statusCode(302)
+        .extract()
+        .response();
+  }
+
+  private HashMap<String, String> getOIDCLoginQueryParams(String uriString) {
+    URI uri;
+    try {
+      uri = new URI(uriString);
+    } catch (Exception e) {
+      logger.error("Failed to parse \"location\" header in response");
+      return null;
+    }
+
+    List<NameValuePair> paramList = URLEncodedUtils.parse(uri.getQuery(), Charset.forName("UTF-8"));
+    HashMap<String, String> params = new HashMap<String, String>();
+    paramList.forEach(param -> { params.put(param.getName(), param.getValue()); });
+
+    return params;
+  }
 }

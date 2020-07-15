@@ -45,8 +45,10 @@ public class LtiCoursesMockOkapi extends MockOkapi {
     logger.info("isFetchingPlatform: " + isFetchingPlatform.toString());
 
     if (isFetchingPlatform) {
-      JsonObject config = new JsonObject().put("value", MockLtiPlatform.asJsonObject().encode());
+      JsonObject config = new JsonObject().put("value", MockLtiPlatform.getInstance().asJsonObject().encode());
       JsonObject configs = new JsonObject().put("configs", new JsonArray().add(config));
+
+      logger.info("Configs: " + configs.encodePrettily());
 
       ctx.response()
         .setStatusCode(200)
