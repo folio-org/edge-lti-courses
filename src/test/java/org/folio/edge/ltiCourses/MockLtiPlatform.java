@@ -36,7 +36,7 @@ public class MockLtiPlatform {
     this.port = port;
     this.clientId = "12345";
     this.cssUrl = "http://localhost:" + port + "/styles.css";
-    this.issuer = "http://localhost:" + port + "/";
+    this.issuer = "http://localhost:" + port;
     this.jwksUrl = "http://localhost:" + port + "/jwks.json";
     this.noReservesMessage = "No reserves :(";
     this.oauthTokenUrl = "http://localhost:" + port + "/token";

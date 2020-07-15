@@ -121,7 +121,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
 
     client.getCourse(query, courseResp -> {
       if (courseResp.statusCode() != 200) {
-        internalServerError(ctx, "Folio had an internal server error");
+        internalServerError(ctx, "Folio had an internal server error: " + courseResp.statusCode());
         return;
       }
 
@@ -194,8 +194,13 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         }
 
         // Validate the JWT
-        Algorithm algorithm = Algorithm.RSA256(platformPublicKey, null);
-        algorithm.verify(jwt);
+        try {
+          Algorithm algorithm = Algorithm.RSA256(platformPublicKey, null);
+          algorithm.verify(jwt);
+        } catch (Exception e) {
+          loggedBadRequest(ctx, "The JWT was signed with a key that doesn't correspond to the LTI Platform's public key");
+          return;
+        }
 
         if (jwt.getAudience().contains(platform.clientId) == false) {
           loggedBadRequest(ctx, "JWT 'aud' doesn't contain the configured client ID");
@@ -203,15 +208,14 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         }
 
         String nonce = jwt.getClaim("nonce").asString();
-        if (nonce.isEmpty()) {
+        if (nonce == null || nonce.isEmpty()) {
           loggedBadRequest(ctx, "Nonce is missing from request");
           return;
         }
 
         String memorizedState = OidcStateCache.getInstance().get(nonce);
-        OidcStateCache.getInstance().put(nonce, null);
         String state = ctx.request().formAttributes().get("state");
-        if (!memorizedState.equals(state)) {
+        if (memorizedState == null || !memorizedState.equals(state)) {
           logger.error("Got new state of: " + state + " but expected: " + memorizedState);
           badRequest(ctx, "Nonce is invalid, states do not match");
           return;

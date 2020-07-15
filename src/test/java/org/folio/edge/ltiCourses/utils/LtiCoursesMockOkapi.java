@@ -9,7 +9,6 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.folio.edge.core.utils.test.MockOkapi;
 
-import org.folio.edge.ltiCourses.LtiCoursesHandler;
 import org.folio.edge.ltiCourses.MockLtiPlatform;
 
 import io.vertx.core.http.HttpHeaders;
@@ -23,7 +22,7 @@ public class LtiCoursesMockOkapi extends MockOkapi {
 
   private static final Logger logger = Logger.getLogger(LtiCoursesMockOkapi.class);
 
-  public static final String titleId_notFound = "0c8e8ac5-6bcc-461e-a8d3-4b55a96addc9";
+  public final String existingCourseId = "COURSE101";
 
   public LtiCoursesMockOkapi(int port, List<String> knownTenants) {
     super(port, knownTenants);
@@ -34,6 +33,8 @@ public class LtiCoursesMockOkapi extends MockOkapi {
     Router router = super.defineRoutes();
 
     router.route(HttpMethod.GET, "/configurations/entries").handler(this::handleGetConfigurations);
+    router.route(HttpMethod.GET, "/coursereserves/courses").handler(this::handleGetCourses);
+    router.route(HttpMethod.GET, "/coursereserves/courselistings/:courseId/reserves").handler(this::handleGetCourseReserves);
 
     return router;
   }
@@ -42,18 +43,57 @@ public class LtiCoursesMockOkapi extends MockOkapi {
     String query = ctx.request().getParam("query");
     Boolean isFetchingPlatform = query.contains("configName=platform");
 
-    logger.info("isFetchingPlatform: " + isFetchingPlatform.toString());
-
     if (isFetchingPlatform) {
       JsonObject config = new JsonObject().put("value", MockLtiPlatform.getInstance().asJsonObject().encode());
       JsonObject configs = new JsonObject().put("configs", new JsonArray().add(config));
-
-      logger.info("Configs: " + configs.encodePrettily());
 
       ctx.response()
         .setStatusCode(200)
         .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
         .end(configs.encodePrettily());
     }
+  }
+
+  protected void handleGetCourses(RoutingContext ctx) {
+    JsonArray courses = new JsonArray();
+
+    if (ctx.request().getParam("query").contains(existingCourseId)) {
+      courses.add(new JsonObject()
+        .put("id", existingCourseId)
+        .put("courseListingId", existingCourseId)
+        .put("courseListingObject", new JsonObject()
+          .put("termObject", new JsonObject()
+            .put("startDate", "2020-06-01")
+            .put("endDate", "2020-12-31")
+          )
+        )
+      );
+    }
+
+    ctx.response()
+      .setStatusCode(200)
+      .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+      .end(new JsonObject().put("courses", courses).encode());
+  }
+
+  protected void handleGetCourseReserves(RoutingContext ctx) {
+    JsonArray reserves = new JsonArray();
+
+    if (existingCourseId.equals(ctx.request().getParam("courseId"))) {
+      reserves.add(new JsonObject()
+        .put("itemId", "foo")
+        .put("barcode", "123")
+      );
+
+      reserves.add(new JsonObject()
+        .put("itemId", "bar")
+        .put("barcode", "456")
+      );
+    }
+
+    ctx.response()
+      .setStatusCode(200)
+      .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+      .end(new JsonObject().put("reserves", reserves).encode());
   }
 }

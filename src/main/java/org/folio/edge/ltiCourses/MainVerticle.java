@@ -2,6 +2,7 @@ package org.folio.edge.ltiCourses;
 
 import static org.folio.edge.ltiCourses.Constants.LTI_TOOL_PRIVATE_KEY_FILE;
 import static org.folio.edge.ltiCourses.Constants.LTI_TOOL_PUBLIC_KEY_FILE;
+import static org.folio.edge.ltiCourses.Constants.OIDC_TTL;
 import static org.folio.edge.ltiCourses.utils.PemUtils.readPrivateKeyFromFile;
 import static org.folio.edge.ltiCourses.utils.PemUtils.readPublicKeyFromFile;
 
@@ -76,7 +77,11 @@ public class MainVerticle extends EdgeVerticle {
 
   @Override
   public Router defineRoutes() {
-    OidcStateCache.initialize(30000, 30000, 10000);
+    OidcStateCache.initialize(
+      Integer.valueOf(System.getProperty(OIDC_TTL, "10000")),
+      Integer.valueOf(System.getProperty(OIDC_TTL, "10000")),
+      10000
+    );
 
     final KeyPair toolKeyPair = getToolKeyPair();
 

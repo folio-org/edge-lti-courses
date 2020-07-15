@@ -7,6 +7,9 @@ import static org.folio.edge.core.Constants.SYS_REQUEST_TIMEOUT_MS;
 import static org.folio.edge.core.Constants.SYS_SECURE_STORE_PROP_FILE;
 import static org.folio.edge.core.Constants.TEXT_PLAIN;
 import static org.folio.edge.core.Constants.APPLICATION_JSON;
+import static org.folio.edge.ltiCourses.Constants.JWT_KID;
+import static org.folio.edge.ltiCourses.Constants.OIDC_TTL;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -19,12 +22,22 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.FileReader;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import com.auth0.jwk.JwkProvider;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTCreator;
 import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.response.Response;
 
@@ -43,6 +56,7 @@ import org.apache.log4j.Logger;
 
 import org.folio.edge.core.utils.ApiKeyUtils;
 import org.folio.edge.core.utils.test.TestUtils;
+import org.folio.edge.ltiCourses.model.LtiPlatform;
 import org.folio.edge.ltiCourses.utils.LtiCoursesMockOkapi;
 import org.folio.edge.ltiCourses.utils.MockLtiPlatformServer;
 
@@ -58,6 +72,8 @@ public class MainVerticleTest {
 
   private static final long requestTimeoutMs = 3000L;
 
+  private static int serverPort;
+
   private static Vertx vertx;
   private static LtiCoursesMockOkapi mockOkapi;
   private static MockLtiPlatformServer mockLtiPlatformServer;
@@ -66,8 +82,9 @@ public class MainVerticleTest {
 
   @BeforeClass
   public static void setUpOnce(TestContext context) throws Exception {
+    serverPort = TestUtils.getPort();
+
     int okapiPort = TestUtils.getPort();
-    int serverPort = TestUtils.getPort();
     int platformPort = TestUtils.getPort();
 
     List<String> knownTenants = new ArrayList<>();
@@ -87,6 +104,7 @@ public class MainVerticleTest {
     System.setProperty(SYS_OKAPI_URL, "http://localhost:" + okapiPort);
     System.setProperty(SYS_SECURE_STORE_PROP_FILE, "src/main/resources/ephemeral.properties");
     System.setProperty(SYS_REQUEST_TIMEOUT_MS, String.valueOf(requestTimeoutMs));
+    System.setProperty(OIDC_TTL, "500");
 
     final DeploymentOptions opt = new DeploymentOptions();
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
@@ -102,10 +120,10 @@ public class MainVerticleTest {
     final Async async = context.async();
     vertx.close(res -> {
       if (res.failed()) {
-        logger.error("Failed to shut down edge-rtac server", res.cause());
+        logger.error("Failed to shut down edge-lti-courses server", res.cause());
         fail(res.cause().getMessage());
       } else {
-        logger.info("Successfully shut down edge-rtac server");
+        logger.info("Successfully shut down edge-lti-courses server");
       }
 
       logger.info("Shutting down mock Okapi");
@@ -226,21 +244,189 @@ public class MainVerticleTest {
     assertEquals("openid", params.get("scope"));
   }
 
-  // @Test
-  // public void testCourseNotFound(TestContext context) {
-  //   logger.info("=== Test Resource Link request for course not found... ===");
+  @Test
+  public void testMockPlatformReturnsJWKS(TestContext context) {
+    logger.info("=== Test mock platform server handles requests for JWKS... ===");
 
-  //   final Response oidcResponse = performOIDCLoginInit();
-  //   HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+    Response resp = RestAssured
+      .given()
+        .baseUri(platform.issuer)
+      .when()
+        .get("/jwks.json")
+      .then()
+        .statusCode(200)
+        .contentType(APPLICATION_JSON)
+        .extract()
+        .response();
 
-  //   String nonce = oidcResponseParams.get("nonce");
-  //   String state = oidcResponseParams.get("state");
+    JsonObject jwks = new JsonObject(resp.asString());
+    JsonArray keys = jwks.getJsonArray("keys");
+    assertNotNull(keys);
 
-  //   RestAssured
-  //     .given()
-  //       .params()
-  // }
+    JsonObject key = keys.getJsonObject(0);
+    assertNotNull(key);
 
+    assertNotNull(key.getString("kid"));
+    assertNotNull(key.getString("kty"));
+    assertNotNull(key.getString("n"));
+    assertNotNull(key.getString("e"));
+    assertNotNull(key.getString("alg"));
+    assertEquals("sig", key.getString("use"));
+  }
+
+  @Test
+  public void testResourceLinkRequestForCourseWithReserves(TestContext context) {
+    logger.info("=== Test Resource Link requests for course with reserves... ===");
+
+    final Response oidcResponse = performOIDCLoginInit();
+    HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+
+    String nonce = oidcResponseParams.get("nonce");
+    String state = oidcResponseParams.get("state");
+
+    String id_token = getResourceLinkJWT(mockOkapi.existingCourseId, nonce);
+
+    Response response = RestAssured
+      .given()
+        .formParam("id_token", id_token)
+        .formParam("state", state)
+      .when()
+        .post("/lti-courses/launches/" + apiKey)
+      .then()
+        .statusCode(200)
+        .contentType("text/html;charset=UTF-8")
+        .extract()
+        .response();
+
+    logger.info("================");
+    logger.info("COURSE: " + response.asString());
+  }
+
+  @Test
+  public void testResourceLinkRequestForCourseNotFound(TestContext context) {
+    logger.info("=== Test Resource Link requests for nonexisting courses... ===");
+
+    final Response oidcResponse = performOIDCLoginInit();
+    HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+
+    String nonce = oidcResponseParams.get("nonce");
+    String state = oidcResponseParams.get("state");
+
+    String id_token = getResourceLinkJWT("XYZ101", nonce);
+
+    RestAssured
+      .given()
+        .formParam("id_token", id_token)
+        .formParam("state", state)
+      .when()
+        .post("/lti-courses/launches/" + apiKey)
+      .then()
+        .statusCode(200)
+        .contentType("text/html;charset=UTF-8")
+        .extract()
+        .response();
+  }
+
+  @Test
+  public void testJWTSignedWithInvalidKey(TestContext context) {
+    logger.info("=== Test Resource Link requests for that are signed with a different key than the configured JWKS... ===");
+
+    final Response oidcResponse = performOIDCLoginInit();
+    HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+
+    String nonce = oidcResponseParams.get("nonce");
+    String state = oidcResponseParams.get("state");
+
+    String id_token = getIncorrectlySignedResourceLinkJWT(mockOkapi.existingCourseId, nonce);
+
+    RestAssured
+      .given()
+        .formParam("id_token", id_token)
+        .formParam("state", state)
+      .when()
+        .post("/lti-courses/launches/" + apiKey)
+      .then()
+        .statusCode(400)
+        .extract()
+        .response();
+  }
+
+  @Test
+  public void testResourceLinkRequestWithBadNonce(TestContext context) {
+    logger.info("=== Test Resource Link requests with an incorrect nonce... ===");
+
+    final Response oidcResponse = performOIDCLoginInit();
+    HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+
+    String nonce = oidcResponseParams.get("nonce");
+    String state = oidcResponseParams.get("state");
+
+    String id_token = getResourceLinkJWT("XYZ101", nonce + "foo");
+
+    RestAssured
+      .given()
+        .formParam("id_token", id_token)
+        .formParam("state", state)
+      .when()
+        .post("/lti-courses/launches/" + apiKey)
+      .then()
+        .statusCode(400)
+        .extract()
+        .response();
+  }
+
+  @Test
+  public void testResourceLinkRequestWithReplayedRequest(TestContext context) {
+    logger.info("=== Test Resource Link requests that have an expired nonce... ===");
+
+    final Response oidcResponse = performOIDCLoginInit();
+    HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+
+    String nonce = oidcResponseParams.get("nonce");
+    String state = oidcResponseParams.get("state");
+    String id_token = getResourceLinkJWT("XYZ101", nonce);
+
+    try {
+      TimeUnit.SECONDS.sleep(1);
+    } catch (Exception e) {
+      logger.error("Was interrupted while sleeping!");
+      return;
+    }
+
+    RestAssured
+    .given()
+      .formParam("id_token", id_token)
+      .formParam("state", state)
+    .when()
+      .post("/lti-courses/launches/" + apiKey)
+    .then()
+      .statusCode(400)
+      .extract()
+      .response();
+  }
+
+  @Test
+  public void testResourceLinkRequestWithIncorrectState(TestContext context) {
+    logger.info("=== Test Resource Link requests with an incorrect state... ===");
+
+    final Response oidcResponse = performOIDCLoginInit();
+    HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+
+    String nonce = oidcResponseParams.get("nonce");
+    String state = oidcResponseParams.get("state") + "foo";
+    String id_token = getResourceLinkJWT("XYZ101", nonce);
+
+    RestAssured
+      .given()
+        .formParam("id_token", id_token)
+        .formParam("state", state)
+      .when()
+        .post("/lti-courses/launches/" + apiKey)
+      .then()
+        .statusCode(400)
+        .extract()
+        .response();
+  }
 
   private Response performOIDCLoginInit() {
     return RestAssured
@@ -272,4 +458,33 @@ public class MainVerticleTest {
 
     return params;
   }
+
+  private static String getResourceLinkJWT(String courseTitle, String nonce) {
+    return getUnsignedResourceLinkJWT(courseTitle, nonce)
+      .sign(mockLtiPlatformServer.algorithm);
+  }
+
+  private static String getIncorrectlySignedResourceLinkJWT(String courseTitle, String nonce) {
+    return getUnsignedResourceLinkJWT(courseTitle, nonce)
+      .sign(mockLtiPlatformServer.invalidAlgorithm);
+  }
+
+  private static JWTCreator.Builder getUnsignedResourceLinkJWT(String courseTitle, String nonce) {
+    HashMap<String,String> contextClaim = new HashMap<String,String>();
+    contextClaim.put("title", courseTitle);
+
+    return JWT.create()
+      .withIssuer(platform.issuer)
+      .withKeyId(JWT_KID)
+
+      .withAudience(platform.clientId)
+      .withIssuedAt(Date.from(Instant.now()))
+      .withExpiresAt(Date.from(Instant.now().plusSeconds(300)))
+
+      .withClaim("nonce", nonce)
+      .withClaim("https://purl.imsglobal.org/spec/lti/claim/message_type", "LtiResourceLinkRequest")
+      .withClaim("https://purl.imsglobal.org/spec/lti/claim/version", "1.3.0")
+      .withClaim("https://purl.imsglobal.org/spec/lti/claim/context", contextClaim);
+  }
+
 }
