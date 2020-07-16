@@ -406,6 +406,35 @@ public class MainVerticleTest {
   }
 
   @Test
+  public void testResourceLinkRequestWithExpiredJWT(TestContext context) {
+    logger.info("=== Test Resource Link requests that have an expired JWT... ===");
+
+    final Response oidcResponse = performOIDCLoginInit();
+    HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+
+    String nonce = oidcResponseParams.get("nonce");
+    String state = oidcResponseParams.get("state");
+
+    String id_token = getUnsignedResourceLinkJWT("XYZ101", nonce)
+      .withIssuedAt(Date.from(Instant.now().minusSeconds(120)))
+      .withExpiresAt(Date.from(Instant.now().minusSeconds(60)))
+      .sign(mockLtiPlatformServer.algorithm);
+
+    logger.info(id_token);
+
+    RestAssured
+    .given()
+      .formParam("id_token", id_token)
+      .formParam("state", state)
+    .when()
+      .post("/lti-courses/launches/" + apiKey)
+    .then()
+      .statusCode(400)
+      .extract()
+      .response();
+  }
+
+  @Test
   public void testResourceLinkRequestWithIncorrectState(TestContext context) {
     logger.info("=== Test Resource Link requests with an incorrect state... ===");
 

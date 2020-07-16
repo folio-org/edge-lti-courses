@@ -24,7 +24,9 @@ import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
 import com.auth0.jwk.UrlJwkProvider;
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.*;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 import io.vertx.core.json.JsonObject;
@@ -194,16 +196,28 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         }
 
         // Validate the JWT
+        Algorithm algorithm = Algorithm.RSA256(platformPublicKey, null);
         try {
-          Algorithm algorithm = Algorithm.RSA256(platformPublicKey, null);
-          algorithm.verify(jwt);
-        } catch (Exception e) {
+          JWTVerifier verifier = JWT.require(algorithm)
+            .withIssuer(platform.issuer)
+            .withAudience(platform.clientId)
+            .build();
+
+          verifier.verify(jwt);
+        } catch (AlgorithmMismatchException e) {
+          loggedBadRequest(ctx, "The JWT was signed with an invalid algorithm");
+          return;
+        } catch (SignatureVerificationException e) {
           loggedBadRequest(ctx, "The JWT was signed with a key that doesn't correspond to the LTI Platform's public key");
           return;
-        }
-
-        if (jwt.getAudience().contains(platform.clientId) == false) {
-          loggedBadRequest(ctx, "JWT 'aud' doesn't contain the configured client ID");
+        } catch (TokenExpiredException e) {
+          loggedBadRequest(ctx, "The JWT has expired");
+          return;
+        } catch (InvalidClaimException e) {
+          loggedBadRequest(ctx, "The JWT contains invalid claims");
+          return;
+        } catch (JWTVerificationException e) {
+          loggedBadRequest(ctx, "The JWT failedd verification");
           return;
         }
 
