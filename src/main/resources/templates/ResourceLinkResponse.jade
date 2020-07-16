@@ -10,8 +10,6 @@ mixin reserve-list-item(reserve)
 ul(class="lti-course-reserves-list")
   each reserve in reserves
     +reserve-list-item(reserve)
-  else
-    div #{platform.getString("noReservesMessage")}
 
 script(type!="text/javascript").
   document.querySelectorAll('.lti-course-reserves-list [data-start-date]').forEach(node => {

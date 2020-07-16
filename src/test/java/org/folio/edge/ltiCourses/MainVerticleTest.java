@@ -284,7 +284,7 @@ public class MainVerticleTest {
     String nonce = oidcResponseParams.get("nonce");
     String state = oidcResponseParams.get("state");
 
-    String id_token = getResourceLinkJWT(mockOkapi.existingCourseId, nonce);
+    String id_token = getResourceLinkJWT(mockOkapi.courseWithReserves, nonce);
 
     Response response = RestAssured
       .given()
@@ -305,7 +305,37 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testResourceLinkRequestForCourseNotFound(TestContext context) {
+  public void testResourceLinkRequestForCourseWithoutReserves(TestContext context) {
+    logger.info("=== Test Resource Link requests for course without reserves... ===");
+
+    final Response oidcResponse = performOIDCLoginInit();
+    HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+
+    String nonce = oidcResponseParams.get("nonce");
+    String state = oidcResponseParams.get("state");
+
+    String id_token = getResourceLinkJWT(mockOkapi.courseWithoutReserves, nonce);
+
+    Response response = RestAssured
+      .given()
+        .formParam("id_token", id_token)
+        .formParam("state", state)
+      .when()
+        .post("/lti-courses/launches/" + apiKey)
+      .then()
+        .statusCode(200)
+        .contentType("text/html;charset=UTF-8")
+        .extract()
+        .response();
+
+    String body = response.getBody().asString();
+    assertEquals(false, body.contains("lti-course-reserves-list"));
+    assertEquals(false, body.contains("</script>"));
+    assertEquals(true, body.contains(platform.noReservesMessage));
+  }
+
+  @Test
+  public void testResourceLinkRequestForNonexistingCourse(TestContext context) {
     logger.info("=== Test Resource Link requests for nonexisting courses... ===");
 
     final Response oidcResponse = performOIDCLoginInit();
@@ -344,7 +374,7 @@ public class MainVerticleTest {
     String nonce = oidcResponseParams.get("nonce");
     String state = oidcResponseParams.get("state");
 
-    String id_token = getIncorrectlySignedResourceLinkJWT(mockOkapi.existingCourseId, nonce);
+    String id_token = getIncorrectlySignedResourceLinkJWT(mockOkapi.courseWithReserves, nonce);
 
     RestAssured
       .given()

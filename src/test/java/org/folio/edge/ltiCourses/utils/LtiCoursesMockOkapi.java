@@ -1,8 +1,6 @@
 package org.folio.edge.ltiCourses.utils;
 
 import static org.folio.edge.core.Constants.APPLICATION_JSON;
-import static org.folio.edge.core.Constants.TEXT_PLAIN;
-import static org.folio.edge.core.Constants.X_OKAPI_TOKEN;
 
 import java.util.List;
 
@@ -22,7 +20,8 @@ public class LtiCoursesMockOkapi extends MockOkapi {
 
   private static final Logger logger = Logger.getLogger(LtiCoursesMockOkapi.class);
 
-  public final String existingCourseId = "COURSE101";
+  public final String courseWithReserves = "COURSE101";
+  public final String courseWithoutReserves = "COURSE201";
 
   public LtiCoursesMockOkapi(int port, List<String> knownTenants) {
     super(port, knownTenants);
@@ -57,10 +56,10 @@ public class LtiCoursesMockOkapi extends MockOkapi {
   protected void handleGetCourses(RoutingContext ctx) {
     JsonArray courses = new JsonArray();
 
-    if (ctx.request().getParam("query").contains(existingCourseId)) {
+    if (ctx.request().getParam("query").contains(courseWithReserves)) {
       courses.add(new JsonObject()
-        .put("id", existingCourseId)
-        .put("courseListingId", existingCourseId)
+        .put("id", courseWithReserves)
+        .put("courseListingId", courseWithReserves)
         .put("courseListingObject", new JsonObject()
           .put("termObject", new JsonObject()
             .put("startDate", "2020-06-01")
@@ -79,7 +78,7 @@ public class LtiCoursesMockOkapi extends MockOkapi {
   protected void handleGetCourseReserves(RoutingContext ctx) {
     JsonArray reserves = new JsonArray();
 
-    if (existingCourseId.equals(ctx.request().getParam("courseId"))) {
+    if (courseWithReserves.equals(ctx.request().getParam("courseId"))) {
       reserves.add(new JsonObject()
         .put("itemId", "foo")
         .put("barcode", "123")

@@ -29,6 +29,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.*;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
@@ -313,8 +314,14 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   }
 
   protected void renderResourceLink(RoutingContext ctx, DecodedJWT jwt, Course course, LtiPlatform platform) {
+    JsonArray reserves = course.getCurrentReserves();
+    if (reserves.size() == 0) {
+      renderNoReserves(ctx, platform);
+      return;
+    }
+
     JsonObject model = new JsonObject()
-      .put("reserves", course.getCurrentReserves())
+      .put("reserves", reserves)
       .put("platform", platform.asJsonObject());
 
     jadeTemplateEngine.render(model, "templates/ResourceLinkResponse", html -> {
