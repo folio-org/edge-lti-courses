@@ -298,8 +298,10 @@ public class MainVerticleTest {
         .extract()
         .response();
 
-    logger.info("================");
-    logger.info("COURSE: " + response.asString());
+    String body = response.getBody().asString();
+    assertEquals(true, body.contains("lti-course-reserves-list"));
+    assertEquals(true, body.contains("</script>"));
+    assertEquals(false, body.contains(platform.noReservesMessage));
   }
 
   @Test
@@ -314,7 +316,7 @@ public class MainVerticleTest {
 
     String id_token = getResourceLinkJWT("XYZ101", nonce);
 
-    RestAssured
+    Response response = RestAssured
       .given()
         .formParam("id_token", id_token)
         .formParam("state", state)
@@ -325,6 +327,11 @@ public class MainVerticleTest {
         .contentType("text/html;charset=UTF-8")
         .extract()
         .response();
+
+    String body = response.getBody().asString();
+    assertEquals(false, body.contains("lti-course-reserves-list"));
+    assertEquals(false, body.contains("</script>"));
+    assertEquals(true, body.contains(platform.noReservesMessage));
   }
 
   @Test
@@ -394,15 +401,15 @@ public class MainVerticleTest {
     }
 
     RestAssured
-    .given()
-      .formParam("id_token", id_token)
-      .formParam("state", state)
-    .when()
-      .post("/lti-courses/launches/" + apiKey)
-    .then()
-      .statusCode(400)
-      .extract()
-      .response();
+      .given()
+        .formParam("id_token", id_token)
+        .formParam("state", state)
+      .when()
+        .post("/lti-courses/launches/" + apiKey)
+      .then()
+        .statusCode(400)
+        .extract()
+        .response();
   }
 
   @Test
@@ -423,15 +430,15 @@ public class MainVerticleTest {
     logger.info(id_token);
 
     RestAssured
-    .given()
-      .formParam("id_token", id_token)
-      .formParam("state", state)
-    .when()
-      .post("/lti-courses/launches/" + apiKey)
-    .then()
-      .statusCode(400)
-      .extract()
-      .response();
+      .given()
+        .formParam("id_token", id_token)
+        .formParam("state", state)
+      .when()
+        .post("/lti-courses/launches/" + apiKey)
+      .then()
+        .statusCode(400)
+        .extract()
+        .response();
   }
 
   @Test
