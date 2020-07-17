@@ -67,7 +67,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
       optionalParams,
       (client, params) -> {
         if (issuer == null || issuer.isEmpty()) {
-          loggedBadRequest(ctx, "Issuer not provided");
+          renderBadRequest(ctx, "Issuer not provided");
           return;
         }
 
@@ -84,9 +84,11 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
             response.bodyHandler(body -> {
               LtiPlatform platform = new LtiPlatform(new JsonObject(body.toString()));
               if (!platform.issuer.equals(issuer)) {
-                loggedBadRequest(ctx, "No LTI Platform is known for this request's issuer.");
+                renderBadRequest(ctx, "No LTI Platform is known for this request's issuer.");
                 return;
               }
+
+              ctx.put("platform", platform);
 
               action.apply(
                 coursesOkapiClient,
@@ -118,7 +120,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
       // We're constructing a query string to look like: query=(courseNumber="CAL101")
       query = "query=%28" + courseIdType + "%3D%22" + URLEncoder.encode(courseTitle, "UTF-8") + "%22%29";
     } catch (Exception exception) {
-      loggedBadRequest(ctx, "Failed to encode requested course title of " + courseTitle);
+      renderBadRequest(ctx, "Failed to encode requested course title of " + courseTitle);
       return;
     }
 
@@ -136,7 +138,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
             .getJsonArray("courses")
             .getJsonObject(0);
         } catch (Exception exception) {
-          renderNoReserves(ctx, platform);
+          renderNoReserves(ctx);
           return;
         }
 
@@ -145,7 +147,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           course = new Course(courseJson);
         } catch (Exception exception) {
           logger.error("Failed to parse course from JsonObject: " + courseJson.encode());
-          renderNoReserves(ctx, platform);
+          renderNoReserves(ctx);
           return;
         }
 
@@ -155,7 +157,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           course.courseListingId,
           reservesResp -> {
             if (reservesResp.statusCode() != 200) {
-              loggedBadRequest(ctx, reservesResp.statusMessage());
+              renderBadRequest(ctx, reservesResp.statusMessage());
               return;
             }
 
@@ -173,7 +175,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected void handleLaunch(RoutingContext ctx, String courseIdType) {
     String id_token = ctx.request().formAttributes().get("id_token");
     if (id_token == null || id_token.isEmpty()) {
-      loggedBadRequest(ctx, "id_token is required and was not found");
+      renderBadRequest(ctx, "id_token is required and was not found");
       return;
     }
 
@@ -192,7 +194,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           Jwk jwk = jwkProvider.get(jwt.getKeyId());
           platformPublicKey = (RSAPublicKey) jwk.getPublicKey();
         } catch (Exception e) {
-          loggedBadRequest(ctx, "Failed to fetch Platform's JWKS: " + e.getLocalizedMessage());
+          renderBadRequest(ctx, "Failed to fetch Platform's JWKS: " + e.getLocalizedMessage());
           return;
         }
 
@@ -206,25 +208,25 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
 
           verifier.verify(jwt);
         } catch (AlgorithmMismatchException e) {
-          loggedBadRequest(ctx, "The JWT was signed with an invalid algorithm");
+          renderBadRequest(ctx, "The JWT was signed with an invalid algorithm");
           return;
         } catch (SignatureVerificationException e) {
-          loggedBadRequest(ctx, "The JWT was signed with a key that doesn't correspond to the LTI Platform's public key");
+          renderBadRequest(ctx, "The JWT was signed with a key that doesn't correspond to the LTI Platform's public key");
           return;
         } catch (TokenExpiredException e) {
-          loggedBadRequest(ctx, "The JWT has expired");
+          renderBadRequest(ctx, "The JWT has expired");
           return;
         } catch (InvalidClaimException e) {
-          loggedBadRequest(ctx, "The JWT contains invalid claims");
+          renderBadRequest(ctx, "The JWT contains invalid claims");
           return;
         } catch (JWTVerificationException e) {
-          loggedBadRequest(ctx, "The JWT failedd verification");
+          renderBadRequest(ctx, "The JWT failedd verification");
           return;
         }
 
         String nonce = jwt.getClaim("nonce").asString();
         if (nonce == null || nonce.isEmpty()) {
-          loggedBadRequest(ctx, "Nonce is missing from request");
+          renderBadRequest(ctx, "Nonce is missing from request");
           return;
         }
 
@@ -232,7 +234,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         String state = ctx.request().formAttributes().get("state");
         if (memorizedState == null || !memorizedState.equals(state)) {
           logger.error("Got new state of: " + state + " but expected: " + memorizedState);
-          badRequest(ctx, "Nonce is invalid, states do not match");
+          renderBadRequest(ctx, "Nonce is invalid, states do not match");
           return;
         }
 
@@ -240,9 +242,9 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           course -> {
             String message_type = jwt.getClaim("https://purl.imsglobal.org/spec/lti/claim/message_type").asString();
             if (message_type.equals(LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST)) {
-              renderResourceLink(ctx, jwt, course, platform);
+              renderResourceLink(ctx, jwt, course);
             } else {
-              loggedBadRequest(ctx, "Invalid message_type claim: " + message_type);
+              renderBadRequest(ctx, "Invalid message_type claim: " + message_type);
             }
           }
         );
@@ -313,16 +315,16 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     handleLaunch(ctx, "courseListing.registrarId");
   }
 
-  protected void renderResourceLink(RoutingContext ctx, DecodedJWT jwt, Course course, LtiPlatform platform) {
+  protected void renderResourceLink(RoutingContext ctx, DecodedJWT jwt, Course course) {
     JsonArray reserves = course.getCurrentReserves();
     if (reserves.size() == 0) {
-      renderNoReserves(ctx, platform);
+      renderNoReserves(ctx);
       return;
     }
 
     JsonObject model = new JsonObject()
       .put("reserves", reserves)
-      .put("platform", platform.asJsonObject());
+      .put("platform", ((LtiPlatform) ctx.get("platform")).asJsonObject());
 
     jadeTemplateEngine.render(model, "templates/ResourceLinkResponse", html -> {
       if (!html.succeeded()) {
@@ -334,9 +336,9 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     });
   }
 
-  protected void renderNoReserves(RoutingContext ctx, LtiPlatform platform) {
+  protected void renderNoReserves(RoutingContext ctx) {
     JsonObject model = new JsonObject()
-      .put("platform", platform.asJsonObject());
+      .put("platform", ((LtiPlatform) ctx.get("platform")).asJsonObject());
 
     jadeTemplateEngine.render(model, "templates/NoReserves", html -> {
       if (!html.succeeded()) {
@@ -348,9 +350,25 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     });
   }
 
-  protected void loggedBadRequest(RoutingContext ctx, String msg) {
+  protected void renderBadRequest(RoutingContext ctx, String msg) {
+    JsonObject model = new JsonObject().put("error", msg);
+
+    LtiPlatform platform = ctx.get("platform");
+    if (platform != null) {
+      model.put("platform", platform.asJsonObject());
+    }
+
     logger.error(msg);
-    badRequest(ctx, msg);
+
+    jadeTemplateEngine.render(model, "templates/Error", html -> {
+      if (html.failed()) {
+        logger.error("Failed to render Error template: " + html.cause());
+        badRequest(ctx, msg);
+        return;
+      }
+
+      htmlResponse(ctx, html.result().toString(), 400);
+    });
   }
 
   protected void loggedInternalServerError(RoutingContext ctx, String msg) {
@@ -359,8 +377,12 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   }
 
   protected void htmlResponse(RoutingContext ctx, String html) {
+    htmlResponse(ctx, html, 200);
+  }
+
+  protected void htmlResponse(RoutingContext ctx, String html, int statusCode) {
     ctx.response()
-      .setStatusCode(200)
+      .setStatusCode(statusCode)
       .putHeader("content-type", "text/html;charset=UTF-8")
       .end(html);
   }

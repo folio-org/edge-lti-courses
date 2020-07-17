@@ -300,7 +300,6 @@ public class MainVerticleTest {
 
     String body = response.getBody().asString();
     assertEquals(true, body.contains("lti-course-reserves-list"));
-    assertEquals(true, body.contains("</script>"));
     assertEquals(false, body.contains(platform.noReservesMessage));
   }
 
@@ -330,7 +329,6 @@ public class MainVerticleTest {
 
     String body = response.getBody().asString();
     assertEquals(false, body.contains("lti-course-reserves-list"));
-    assertEquals(false, body.contains("</script>"));
     assertEquals(true, body.contains(platform.noReservesMessage));
   }
 
@@ -360,7 +358,6 @@ public class MainVerticleTest {
 
     String body = response.getBody().asString();
     assertEquals(false, body.contains("lti-course-reserves-list"));
-    assertEquals(false, body.contains("</script>"));
     assertEquals(true, body.contains(platform.noReservesMessage));
   }
 
