@@ -52,7 +52,7 @@ public class CourseTest {
 
   @Test
   public void testCurrentCourseWithDatelessReserves() {
-    logger.info("=== Test current reserves calculation with current course - Success ===");
+    logger.info("=== Test current reserves calculation with current course... ===");
 
     Course course = new Course(courseJson);
 
@@ -75,7 +75,7 @@ public class CourseTest {
 
   @Test
   public void testUnstartedCourseWithDatelessReserves() {
-    logger.info("=== Test current reserves calculation with unstarted course - Success ===");
+    logger.info("=== Test current reserves calculation with unstarted course... ===");
 
     Course course = new Course(courseJson);
 
@@ -97,7 +97,7 @@ public class CourseTest {
 
   @Test
   public void testEndedCourseWithDatelessReserves() {
-    logger.info("=== Test current reserves calculation with ended course - Success ===");
+    logger.info("=== Test current reserves calculation with ended course... ===");
 
     Course course = new Course(courseJson);
 
@@ -332,7 +332,7 @@ public class CourseTest {
 
   @Test
   public void testCurrentCourseWithSearchUrlAndBarcode() {
-    logger.info("=== Test current reserves calculation with current course - Success ===");
+    logger.info("=== Test search URI templating with barcode... ===");
 
     Course course = new Course(courseJson);
 
@@ -349,6 +349,33 @@ public class CourseTest {
     + "}";
 
     course.setSearchUrl("https://find.mylib.edu?q=[BARCODE]");
+    course.setReserves(datelessReserve);
+
+    JsonArray reserves = course.getCurrentReserves(octoberClock);
+
+    assertEquals(1, reserves.size());
+    assertEquals("https://find.mylib.edu?q=raboof", reserves.getJsonObject(0).getString("uri"));
+  }
+
+  @Test
+  public void testCurrentCourseWithSearchUrlAndInstanceHrid() {
+    logger.info("=== Test search URI templating with instance HRID... ===");
+
+    Course course = new Course(courseJson);
+
+    String datelessReserve = "{"
+    + "  \"reserves\" : [ {"
+    + "    \"id\" : \"b9805a3c-d024-4883-9f4d-5059a7da218f\","
+    + "    \"courseListingId\" : \"4c2a8ce9-f7d4-4f5e-a6d7-88bc7eb193fc\","
+    + "    \"itemId\" : \"foobar\","
+    + "    \"copiedItem\" : {"
+    + "      \"instanceHrid\" : \"raboof\""
+    + "    }"
+    + "  } ],"
+    + "  \"totalRecords\" : 1"
+    + "}";
+
+    course.setSearchUrl("https://find.mylib.edu?q=[INSTANCE_HRID]");
     course.setReserves(datelessReserve);
 
     JsonArray reserves = course.getCurrentReserves(octoberClock);

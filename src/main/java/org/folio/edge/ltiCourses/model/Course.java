@@ -107,6 +107,8 @@ public class Course {
         if (reserve.uri.isEmpty()) {
           if (searchUrl != null && searchUrl.contains("[BARCODE]")) {
             reserveJson.put("uri", searchUrl.replace("[BARCODE]", reserve.barcode));
+          } else if (searchUrl != null && searchUrl.contains("[INSTANCE_HRID]")) {
+            reserveJson.put("uri", searchUrl.replace("[INSTANCE_HRID]", reserve.instanceHrid));
           } else {
             reserveJson.put("uri", searchUrl);
           }

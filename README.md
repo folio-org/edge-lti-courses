@@ -7,7 +7,7 @@ Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
 
 ## Overview
 
-The purpose of this edge API is to connect LMS such as Sakai and Blackboard (LTI Platforms) to Folio via the [LTI Advantage](https://www.imsglobal.org/lti-advantage-overview) protocol for the purposes of sharing the course reserves stored in Folio.
+The purpose of this edge module is to connect LMS such as Sakai and Blackboard (LTI Platforms) to Folio via the [LTI Advantage](https://www.imsglobal.org/lti-advantage-overview) protocol for the purposes of sharing the course reserves stored in Folio.
 
 To accomplish this, this module acts as an LTI Tool Provider. It adheres to two parts of the LTI Advantage spec to accomplish this. First, security is enabled via a [third-party-initiated OIDC Authentication flow](https://www.imsglobal.org/spec/security/v1p0/#platform-originating-messages) (this is a generic ). Second, the actual course reserves are requested and shown via messages using [the Resource Link spec](https://www.imsglobal.org/spec/lti/v1p3/#resource-link-launch-request-message).
 
@@ -48,7 +48,7 @@ The Platform's public key is fetched via a JWKS. The Platform's JWKS URL is conf
 
 ## Requires Permissions
 
-Institutional users should be granted the following permission in order to use this edge API:
+Institutional users should be granted the following permission in order to use this edge module:
 - `course-reserves-storage.courselistings.reserves.collection.get`
 - `course-reserves-storage.courses.collection.get`
 - `configuration.entries.collection.get`

@@ -10,6 +10,7 @@ import org.folio.edge.ltiCourses.utils.DateUtils;
 public class Reserve {
   public String itemId;
   public String barcode;
+  public String instanceHrid;
   public String title;
   public String uri;
   public String primaryContributor;
@@ -26,6 +27,7 @@ public class Reserve {
 
     JsonObject item = json.getJsonObject("copiedItem", new JsonObject());
     this.barcode = item.getString("barcode", "");
+    this.instanceHrid = item.getString("instanceHrid", "");
     this.title = item.getString("title", "");
     this.uri = item.getString("uri", "");
 
@@ -56,6 +58,7 @@ public class Reserve {
     return new JsonObject()
       .put("itemId", itemId)
       .put("barcode", barcode)
+      .put("instanceHrid", instanceHrid)
       .put("title", title)
       .put("uri", uri)
       .put("startDate", startDate)
