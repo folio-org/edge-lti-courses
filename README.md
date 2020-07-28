@@ -7,7 +7,7 @@ Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
 
 ## Overview
 
-The purpose of this edge module is to connect LMS such as Sakai and Blackboard (LTI Platforms) to Folio via the [LTI Advantage](https://www.imsglobal.org/lti-advantage-overview) protocol for the purposes of sharing the course reserves stored in Folio.
+My dummy branch
 
 To accomplish this, this module acts as an LTI Tool Provider. It adheres to two parts of the LTI Advantage spec to accomplish this. First, security is enabled via a [third-party-initiated OIDC Authentication flow](https://www.imsglobal.org/spec/security/v1p0/#platform-originating-messages) (this is a generic ). Second, the actual course reserves are requested and shown via messages using [the Resource Link spec](https://www.imsglobal.org/spec/lti/v1p3/#resource-link-launch-request-message).
 
