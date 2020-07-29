@@ -3,7 +3,6 @@ buildMvn {
   publishAPI = 'yes'
   mvnDeploy = 'yes'
   runLintRamlCop = 'yes'
-  runSonarqube = 'no'
 
   doDocker = {
     buildJavaDocker {
