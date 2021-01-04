@@ -105,7 +105,7 @@ public class MainVerticleTest {
     System.setProperty(SYS_OKAPI_URL, "http://localhost:" + okapiPort);
     System.setProperty(SYS_SECURE_STORE_PROP_FILE, "src/main/resources/ephemeral.properties");
     System.setProperty(SYS_REQUEST_TIMEOUT_MS, String.valueOf(requestTimeoutMs));
-    System.setProperty(OIDC_TTL, "500");
+    System.setProperty(OIDC_TTL, "1000");
 
     final DeploymentOptions opt = new DeploymentOptions();
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
@@ -422,7 +422,7 @@ public class MainVerticleTest {
     String id_token = getResourceLinkJWT("XYZ101", nonce);
 
     try {
-      TimeUnit.SECONDS.sleep(1);
+      TimeUnit.SECONDS.sleep(2);
     } catch (Exception e) {
       logger.error("Was interrupted while sleeping!");
       return;

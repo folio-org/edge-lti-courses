@@ -63,7 +63,7 @@ public class LtiCoursesMockOkapi extends MockOkapi {
         .put("courseListingObject", new JsonObject()
           .put("termObject", new JsonObject()
             .put("startDate", "2020-06-01")
-            .put("endDate", "2020-12-31")
+            .put("endDate", "2130-12-31")
           )
         )
       );
