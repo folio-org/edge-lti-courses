@@ -38,6 +38,8 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected RSAPrivateKey privateKey;
   protected JadeTemplateEngine jadeTemplateEngine;
   protected String toolPublicKey;
+  protected Boolean useInternalDownloadLinks;
+  protected Boolean ignoreOIDCState;
 
   private static final Logger logger = Logger.getLogger(LtiCoursesHandler.class);
 
@@ -46,12 +48,16 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     LtiCoursesOkapiClientFactory ocf,
     ApiKeyHelper apiKeyHelper,
     RSAPrivateKey privateKey,
-    JadeTemplateEngine jadeTemplateEngine
+    JadeTemplateEngine jadeTemplateEngine,
+    Boolean useInternalDownloadLinks,
+    Boolean ignoreOIDCState
   ) {
     super(secureStore, ocf, apiKeyHelper);
 
     this.privateKey = privateKey;
     this.jadeTemplateEngine = jadeTemplateEngine;
+    this.useInternalDownloadLinks = useInternalDownloadLinks;
+    this.ignoreOIDCState = ignoreOIDCState;
   }
 
   protected void handleCommonLTI(
@@ -152,6 +158,9 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         }
 
         course.setSearchUrl(platform.searchUrl);
+        if (platform.boxDirectDownload) {
+          course.enableBoxDirectDownload();
+        }
 
         client.getCourseReserves(
           course.courseListingId,
@@ -224,18 +233,20 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           return;
         }
 
-        String nonce = jwt.getClaim("nonce").asString();
-        if (nonce == null || nonce.isEmpty()) {
-          renderBadRequest(ctx, "Nonce is missing from request");
-          return;
-        }
+        if (ignoreOIDCState != true) {
+          String nonce = jwt.getClaim("nonce").asString();
+          if (nonce == null || nonce.isEmpty()) {
+            renderBadRequest(ctx, "Nonce is missing from request");
+            return;
+          }
 
-        String memorizedState = OidcStateCache.getInstance().get(nonce);
-        String state = ctx.request().formAttributes().get("state");
-        if (memorizedState == null || !memorizedState.equals(state)) {
-          logger.error("Got new state of: " + state + " but expected: " + memorizedState);
-          renderBadRequest(ctx, "Nonce is invalid, states do not match");
-          return;
+          String memorizedState = OidcStateCache.getInstance().get(nonce);
+          String state = ctx.request().formAttributes().get("state");
+          if (memorizedState == null || !memorizedState.equals(state)) {
+            logger.error("Got new state of: " + state + " but expected: " + memorizedState);
+            renderBadRequest(ctx, "Nonce is invalid, states do not match");
+            return;
+          }
         }
 
         getCourse(ctx, client, jwt, platform, courseIdType,

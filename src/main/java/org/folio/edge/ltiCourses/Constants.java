@@ -10,6 +10,11 @@ public class Constants {
 
   public static final String JWT_KID = "folio_lti_courses";
   public static final String OIDC_TTL = "oidc_ttl";
+  public static final String DOWNLOAD_URL_TTL = "download_url_ttl";
+  public static final String BOX_API_APP_TOKEN = "box_api_app_token";
+  public static final String IGNORE_OIDC_STATE = "ignore_oidc_state";
+
+  public static final String BOX_COM_URL_INDICATOR = "box.com/file/";
 
   public static final String DEFAULT_RESERVES_NOT_FOUND_MESSAGE = "No course reserve materials are currently available. If you believe this is an error, please contact your librarian for assistance.";
 

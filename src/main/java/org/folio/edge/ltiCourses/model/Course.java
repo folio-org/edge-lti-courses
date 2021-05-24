@@ -9,6 +9,9 @@ import java.util.ArrayDeque;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;
+import org.folio.edge.ltiCourses.cache.BoxFileCache;
+
+import static org.folio.edge.ltiCourses.Constants.BOX_COM_URL_INDICATOR;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -20,6 +23,7 @@ public class Course {
   protected String searchUrl;
   protected Term term;
   protected ArrayDeque<Reserve> reserves;
+  protected Boolean boxDirectDownload = false;
 
   private static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -38,6 +42,10 @@ public class Course {
 
   public void setSearchUrl(String searchUrl) {
     this.searchUrl = searchUrl;
+  }
+
+  public void enableBoxDirectDownload() {
+    this.boxDirectDownload = true;
   }
 
   public void setReserves(String reservesString) {
@@ -112,6 +120,12 @@ public class Course {
           } else {
             reserveJson.put("uri", searchUrl);
           }
+        } else if (this.boxDirectDownload && reserve.uri.contains(BOX_COM_URL_INDICATOR)) {
+          String boxFileId = reserve.uri.substring(reserve.uri.lastIndexOf("/") + 1);
+          String hash = BoxFileCache.getInstance().put(boxFileId);
+          reserveJson.put("uri", "/lti-courses/download-file/" + hash);
+
+          logger.info("Switching URL of Box File from " + reserve.uri + " to " + reserveJson.getString("uri"));
         }
 
         json.add(reserveJson);

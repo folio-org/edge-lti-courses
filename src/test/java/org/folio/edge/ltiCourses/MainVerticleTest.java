@@ -1,6 +1,5 @@
 package org.folio.edge.ltiCourses;
 
-import static org.folio.edge.core.Constants.SYS_LOG_LEVEL;
 import static org.folio.edge.core.Constants.SYS_OKAPI_URL;
 import static org.folio.edge.core.Constants.SYS_PORT;
 import static org.folio.edge.core.Constants.SYS_REQUEST_TIMEOUT_MS;
@@ -22,12 +21,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.io.FileReader;
-import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.auth0.jwk.JwkProvider;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator;
 
@@ -105,7 +99,7 @@ public class MainVerticleTest {
     System.setProperty(SYS_OKAPI_URL, "http://localhost:" + okapiPort);
     System.setProperty(SYS_SECURE_STORE_PROP_FILE, "src/main/resources/ephemeral.properties");
     System.setProperty(SYS_REQUEST_TIMEOUT_MS, String.valueOf(requestTimeoutMs));
-    System.setProperty(OIDC_TTL, "1000");
+    System.setProperty(OIDC_TTL, "3000");
 
     final DeploymentOptions opt = new DeploymentOptions();
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
@@ -422,7 +416,7 @@ public class MainVerticleTest {
     String id_token = getResourceLinkJWT("XYZ101", nonce);
 
     try {
-      TimeUnit.SECONDS.sleep(2);
+      TimeUnit.SECONDS.sleep(5);
     } catch (Exception e) {
       logger.error("Was interrupted while sleeping!");
       return;
