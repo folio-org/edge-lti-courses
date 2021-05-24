@@ -13,6 +13,7 @@ public class LtiPlatform {
   public String oauthTokenUrl;
   public String oidcAuthUrl;
   public String searchUrl;
+  public Boolean boxDirectDownload = false;
 
   public LtiPlatform(JsonObject configuration) {
     JsonObject platform = new JsonObject(
@@ -29,6 +30,7 @@ public class LtiPlatform {
     this.oidcAuthUrl = platform.getString("oidcAuthUrl");
     this.noReservesMessage = platform.getString("noReservesMessage", DEFAULT_RESERVES_NOT_FOUND_MESSAGE);
     this.searchUrl = platform.getString("searchUrl");
+    this.boxDirectDownload = platform.getBoolean("boxDirectDownload", false);
   }
 
   public JsonObject asJsonObject() {
@@ -39,6 +41,7 @@ public class LtiPlatform {
       .put("jwksUrl", jwksUrl)
       .put("oidcAuthUrl", oidcAuthUrl)
       .put("noReservesMessage", noReservesMessage)
-      .put("searchUrl", searchUrl);
+      .put("searchUrl", searchUrl)
+      .put("boxDirectDownload", this.boxDirectDownload);
   }
 }

@@ -1,8 +1,11 @@
 package org.folio.edge.ltiCourses;
 
+import static org.folio.edge.ltiCourses.Constants.BOX_API_APP_TOKEN;
+import static org.folio.edge.ltiCourses.Constants.DOWNLOAD_URL_TTL;
 import static org.folio.edge.ltiCourses.Constants.LTI_TOOL_PRIVATE_KEY_FILE;
 import static org.folio.edge.ltiCourses.Constants.LTI_TOOL_PUBLIC_KEY_FILE;
 import static org.folio.edge.ltiCourses.Constants.OIDC_TTL;
+import static org.folio.edge.ltiCourses.Constants.IGNORE_OIDC_STATE;
 import static org.folio.edge.ltiCourses.utils.PemUtils.readPrivateKeyFromFile;
 import static org.folio.edge.ltiCourses.utils.PemUtils.readPublicKeyFromFile;
 
@@ -15,6 +18,7 @@ import java.security.interfaces.RSAPublicKey;
 import org.apache.log4j.Logger;
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.EdgeVerticle;
+import org.folio.edge.ltiCourses.cache.BoxFileCache;
 import org.folio.edge.ltiCourses.cache.OidcStateCache;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
 
@@ -97,12 +101,26 @@ public class MainVerticle extends EdgeVerticle {
 
     final ApiKeyHelper apiKeyHelper = new ApiKeyHelper("PATH");
 
+    final Boolean ignoreOIDCState = System.getProperty(IGNORE_OIDC_STATE, "false").equals("true");
+    if (ignoreOIDCState == true) {
+      logger.info("Ignoring OIDC state...this is UNSAFE and only intended for development!");
+    }
+
+    // Currently, we only support transparent downloads of files stored in Box.com. However,
+    // `useInternalDownloadLinks` could check for other auth/config and then a different
+    // handler could be wired up to the /lti-courses/download-file route. That's why
+    // LtiCoursesHandler doesn't know about /Box/, it only knows about "internal download links."
+    final String boxApiAppToken = System.getProperty(BOX_API_APP_TOKEN, "");
+    final Boolean useInternalDownloadLinks = boxApiAppToken.isEmpty() == false;
+
     final LtiCoursesHandler ltiCoursesHandler = new LtiCoursesHandler(
       secureStore,
       ocf,
       apiKeyHelper,
       (RSAPrivateKey)toolKeyPair.getPrivate(),
-      jadeTemplateEngine
+      jadeTemplateEngine,
+      useInternalDownloadLinks,
+      ignoreOIDCState
     );
 
     final JwksHandler jwksHandler = new JwksHandler((RSAPublicKey)toolKeyPair.getPublic());
@@ -117,6 +135,16 @@ public class MainVerticle extends EdgeVerticle {
     router.route(HttpMethod.POST, "/lti-courses/launches/:apiKeyPath").handler(ltiCoursesHandler::handleRequest);
     router.route(HttpMethod.POST, "/lti-courses/externalIdLaunches/:apiKeyPath").handler(ltiCoursesHandler::handleRequestCourseExternalId);
     router.route(HttpMethod.POST, "/lti-courses/registrarIdLaunches/:apiKeyPath").handler(ltiCoursesHandler::handleRequestCourseRegistrarId);
+
+    // Set up optional Box API integration
+    BoxFileCache.initialize(
+      Integer.valueOf(System.getProperty(DOWNLOAD_URL_TTL, "600000")),  // 10 minutes
+      Integer.valueOf(System.getProperty(DOWNLOAD_URL_TTL, "600000")),  // 10 minutes
+      100000
+    );
+
+    final BoxDownloadHandler boxDownloadHandler = new BoxDownloadHandler(boxApiAppToken);
+    router.route(HttpMethod.GET, "/lti-courses/download-file/:hash").handler(boxDownloadHandler::handleDownloadRequest);
 
     return router;
   }
