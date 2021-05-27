@@ -106,26 +106,18 @@ public class MainVerticle extends EdgeVerticle {
       logger.info("Ignoring OIDC state...this is UNSAFE and only intended for development!");
     }
 
-    // Currently, we only support transparent downloads of files stored in Box.com. However,
-    // `useInternalDownloadLinks` could check for other auth/config and then a different
-    // handler could be wired up to the /lti-courses/download-file route. That's why
-    // LtiCoursesHandler doesn't know about /Box/, it only knows about "internal download links."
-    final String boxApiAppToken = System.getProperty(BOX_API_APP_TOKEN, "");
-    final Boolean useInternalDownloadLinks = boxApiAppToken.isEmpty() == false;
-
     final LtiCoursesHandler ltiCoursesHandler = new LtiCoursesHandler(
       secureStore,
       ocf,
       apiKeyHelper,
       (RSAPrivateKey)toolKeyPair.getPrivate(),
       jadeTemplateEngine,
-      useInternalDownloadLinks,
       ignoreOIDCState
     );
 
     final JwksHandler jwksHandler = new JwksHandler((RSAPublicKey)toolKeyPair.getPublic());
 
-    // Finally, define our routes.
+    // Define our regular routes.
     final Router router = Router.router(vertx);
     router.route().handler(BodyHandler.create());
     router.route(HttpMethod.GET, "/admin/health").handler(this::handleHealthCheck);
@@ -136,15 +128,18 @@ public class MainVerticle extends EdgeVerticle {
     router.route(HttpMethod.POST, "/lti-courses/externalIdLaunches/:apiKeyPath").handler(ltiCoursesHandler::handleRequestCourseExternalId);
     router.route(HttpMethod.POST, "/lti-courses/registrarIdLaunches/:apiKeyPath").handler(ltiCoursesHandler::handleRequestCourseRegistrarId);
 
-    // Set up optional Box API integration
-    BoxFileCache.initialize(
-      Integer.valueOf(System.getProperty(DOWNLOAD_URL_TTL, "600000")),  // 10 minutes
-      Integer.valueOf(System.getProperty(DOWNLOAD_URL_TTL, "600000")),  // 10 minutes
-      100000
-    );
+    // Set up Box.com API integration if applicable.
+    final String boxApiAppToken = System.getProperty(BOX_API_APP_TOKEN, "");
+    if (boxApiAppToken.length() > 0) {
+      BoxFileCache.initialize(
+        Integer.valueOf(System.getProperty(DOWNLOAD_URL_TTL, "600000")),  // 10 minutes
+        Integer.valueOf(System.getProperty(DOWNLOAD_URL_TTL, "600000")),  // 10 minutes
+        100000
+      );
 
-    final BoxDownloadHandler boxDownloadHandler = new BoxDownloadHandler(boxApiAppToken);
-    router.route(HttpMethod.GET, "/lti-courses/download-file/:hash").handler(boxDownloadHandler::handleDownloadRequest);
+      final BoxDownloadHandler boxDownloadHandler = new BoxDownloadHandler(boxApiAppToken);
+      router.route(HttpMethod.GET, "/lti-courses/download-file/:hash").handler(boxDownloadHandler::handleDownloadRequest);
+    }
 
     return router;
   }

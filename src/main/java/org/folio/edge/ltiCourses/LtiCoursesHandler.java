@@ -38,7 +38,6 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected RSAPrivateKey privateKey;
   protected JadeTemplateEngine jadeTemplateEngine;
   protected String toolPublicKey;
-  protected Boolean useInternalDownloadLinks;
   protected Boolean ignoreOIDCState;
 
   private static final Logger logger = Logger.getLogger(LtiCoursesHandler.class);
@@ -49,14 +48,12 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     ApiKeyHelper apiKeyHelper,
     RSAPrivateKey privateKey,
     JadeTemplateEngine jadeTemplateEngine,
-    Boolean useInternalDownloadLinks,
     Boolean ignoreOIDCState
   ) {
     super(secureStore, ocf, apiKeyHelper);
 
     this.privateKey = privateKey;
     this.jadeTemplateEngine = jadeTemplateEngine;
-    this.useInternalDownloadLinks = useInternalDownloadLinks;
     this.ignoreOIDCState = ignoreOIDCState;
   }
 
@@ -229,7 +226,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           renderBadRequest(ctx, "The JWT contains invalid claims");
           return;
         } catch (JWTVerificationException e) {
-          renderBadRequest(ctx, "The JWT failedd verification");
+          renderBadRequest(ctx, "The JWT failed verification");
           return;
         }
 
