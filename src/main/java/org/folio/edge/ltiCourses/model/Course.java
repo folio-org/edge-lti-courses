@@ -120,7 +120,7 @@ public class Course {
           } else {
             reserveJson.put("uri", searchUrl);
           }
-        } else if (this.boxDirectDownload && reserve.uri.contains(BOX_COM_URL_INDICATOR)) {
+        } else if (Boolean.TRUE.equals(this.boxDirectDownload) && reserve.uri.contains(BOX_COM_URL_INDICATOR)) {
           String boxFileId = reserve.uri.substring(reserve.uri.lastIndexOf("/") + 1);
           String hash = BoxFileCache.getInstance().put(boxFileId);
           reserveJson.put("uri", "/lti-courses/download-file/" + hash);

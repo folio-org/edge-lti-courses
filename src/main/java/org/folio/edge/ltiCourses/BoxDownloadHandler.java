@@ -37,8 +37,6 @@ public class BoxDownloadHandler {
     }
 
     final String hash = ctx.request().getParam("hash");
-    logger.info("Handling request to download Box file hashed at: " + hash);
-
     String boxFileId = BoxFileCache.getInstance().get(hash);
 
     if (boxFileId == null || boxFileId.isEmpty()) {
@@ -49,25 +47,30 @@ public class BoxDownloadHandler {
       return;
     }
 
-    BoxFile file;
     File tempFile;
-
     try {
-      file = new BoxFile(api, boxFileId);
-
-      logger.info("Creating temp file and setting up output stream...");
       tempFile = File.createTempFile("edge-lti-box-file-", null);
       tempFile.deleteOnExit();
-      FileOutputStream stream = new FileOutputStream(tempFile.getPath());
-
-      logger.info("Downloading Box file to temp file...");
-      file.download(stream);
-      stream.close();
     } catch (Exception e) {
-      logger.error("Failed while downloading Box file: " + e.getMessage());
+      final String errorMessage = "Failed while creating file: " + e.getMessage();
+      logger.error(errorMessage);
       ctx.response()
         .setStatusCode(500)
-        .end(e.toString());
+        .end(errorMessage);
+
+      return;
+    }
+
+    BoxFile file;
+    try (FileOutputStream stream = new FileOutputStream(tempFile.getPath());) {
+      file = new BoxFile(api, boxFileId);
+      file.download(stream);
+    } catch (Exception e) {
+      final String errorMessage = "Failed while downloading file: " + e.getMessage();
+      logger.error(errorMessage);
+      ctx.response()
+        .setStatusCode(500)
+        .end(errorMessage);
 
       return;
     }
@@ -80,6 +83,8 @@ public class BoxDownloadHandler {
       .putHeader(HttpHeaders.TRANSFER_ENCODING, "chunked")
       .sendFile(tempFile.getPath());
 
-    tempFile.delete();
+    if (!tempFile.delete()) {
+      logger.info("Failed to delete temp file at " + tempFile.getPath());
+    }
   }
 }
