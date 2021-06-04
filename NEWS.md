@@ -1,3 +1,6 @@
+## 1.1.0 2021-06-04
+* Added ability to use Box.com API for direct-download of reserves.
+
 ## 1.0.0 2021-01-04
 * Initial release
 
