@@ -32,7 +32,6 @@ public class LtiCoursesOkapiClient extends OkapiClient {
     }
 
     get(
-      // okapiURL + "/configurations/entries?limit=100&query=(module=EDGELTICOURSES+and+configName=" + issuerQuery + ")",
       okapiURL + "/configurations/entries?limit=100&query=(module=EDGELTICOURSES+and+configName=platform+and+code=" + issuerQuery + ")",
       tenant,
       responseHandler,

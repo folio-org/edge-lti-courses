@@ -87,6 +87,28 @@ public class LtiCoursesMockOkapi extends MockOkapi {
       reserves.add(new JsonObject()
         .put("itemId", "bar")
         .put("barcode", "456")
+        .put("copiedItem", new JsonObject()
+          .put("permanentLocationObject", new JsonObject().put("discoveryDisplayName", "Never Visible")) // This should never be visible because discovery isn't suppressed
+        )
+      );
+
+      reserves.add(new JsonObject()
+        .put("itemId", "permanentSecretLocation")
+        .put("barcode", "invalid1")
+        .put("copiedItem", new JsonObject()
+          .put("permanentLocationObject", new JsonObject().put("discoveryDisplayName", "Secret Shelf"))
+          .put("instanceDiscoverySuppress", true)
+        )
+      );
+
+      reserves.add(new JsonObject()
+        .put("itemId", "temporaryKnownLocation")
+        .put("barcode", "invalid2")
+        .put("copiedItem", new JsonObject()
+          .put("permanentLocationObject", new JsonObject().put("discoveryDisplayName", "Secret Shelf"))
+          .put("temporaryLocationObject", new JsonObject().put("discoveryDisplayName", "Public Shelf"))
+          .put("instanceDiscoverySuppress", true)
+        )
       );
     }
 
