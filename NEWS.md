@@ -1,3 +1,6 @@
+## 1.3.0 IN PROGRESS
+* Added different reserve-item rendering for reserve-instances that have `discoverySuppress` enabled.
+
 ## 1.2.0 2021-06-04
 * Update version of `org.folio:edge-common` from `2.0.2` to `3.0.0`
 

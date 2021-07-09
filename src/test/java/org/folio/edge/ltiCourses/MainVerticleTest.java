@@ -299,6 +299,36 @@ public class MainVerticleTest {
   }
 
   @Test
+  public void testResourceLinkRequestForCourseWithReservesThatHaveSuppressedDiscovery(TestContext context) {
+    logger.info("=== Test Resource Link requests for course with reserves that have suppressed discovery... ===");
+
+    final Response oidcResponse = performOIDCLoginInit();
+    HashMap<String, String> oidcResponseParams = getOIDCLoginQueryParams(oidcResponse.header("location"));
+
+    String nonce = oidcResponseParams.get("nonce");
+    String state = oidcResponseParams.get("state");
+
+    String id_token = getResourceLinkJWT(mockOkapi.courseWithReserves, nonce);
+
+    Response response = RestAssured
+      .given()
+        .formParam("id_token", id_token)
+        .formParam("state", state)
+      .when()
+        .post("/lti-courses/launches/" + apiKey)
+      .then()
+        .statusCode(200)
+        .contentType("text/html;charset=UTF-8")
+        .extract()
+        .response();
+
+    String body = response.getBody().asString();
+    assertEquals(true, body.contains("(available at Secret Shelf)"));
+    assertEquals(true, body.contains("(available at Public Shelf)"));
+    assertEquals(false, body.contains("(available at Never Visible)"));
+  }
+
+  @Test
   public void testResourceLinkRequestForCourseWithoutReserves(TestContext context) {
     logger.info("=== Test Resource Link requests for course without reserves... ===");
 

@@ -16,6 +16,8 @@ public class Reserve {
   public String primaryContributor;
   public String startDate;
   public String endDate;
+  public String locationDisplayName;
+  public Boolean suppressDiscovery;
 
   public Reserve(JsonObject json) {
     this.itemId = json.getString("itemId", "");
@@ -30,6 +32,11 @@ public class Reserve {
     this.instanceHrid = item.getString("instanceHrid", "");
     this.title = item.getString("title", "");
     this.uri = item.getString("uri", "");
+    this.suppressDiscovery = item.getBoolean("instanceDiscoverySuppress", false);
+
+    // Get the physical location, preferring the temporary location over the permanent location.
+    this.locationDisplayName = item.getJsonObject("permanentLocationObject", new JsonObject()).getString("discoveryDisplayName", "?");
+    this.locationDisplayName = item.getJsonObject("temporaryLocationObject", new JsonObject()).getString("discoveryDisplayName", this.locationDisplayName);
 
     Iterator<Object> i = item
       .getJsonArray("contributors", new JsonArray())
@@ -63,6 +70,8 @@ public class Reserve {
       .put("uri", uri)
       .put("startDate", startDate)
       .put("endDate", endDate)
-      .put("primaryContributor", primaryContributor);
+      .put("primaryContributor", primaryContributor)
+      .put("locationDisplayName", locationDisplayName)
+      .put("suppressDiscovery", suppressDiscovery);
   }
 }
