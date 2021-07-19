@@ -47,6 +47,10 @@ LTI Advantage requires that Platforms and Tools have knowledge of one other befo
 - OIDC Authorization URL: The URL that the Tool should redirect the Platform to after handling an OIDC Login Initiation.
 - Search URL: A templated URL that the Tool will use when rendering HTML links to the course reserve items.
 
+## Code Tour
+
+[A full Code Tour that's intended for a technical audience is available here.](docs/code-tour.md)
+
 ## Security
 
 [edge-common](https://github.com/folio-org/edge-common) contains a description of the security model as it relates to the `apiKey`. Additionally, further security is added due to LTI's use of an OIDC login flow.
