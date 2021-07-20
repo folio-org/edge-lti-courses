@@ -81,21 +81,23 @@ public class LtiCoursesMockOkapi extends MockOkapi {
     if (courseWithReserves.equals(ctx.request().getParam("courseId"))) {
       reserves.add(new JsonObject()
         .put("itemId", "foo")
-        .put("barcode", "123")
+        .put("copiedItem", new JsonObject()
+          .put("barcode", "barcode_123")
+        )
       );
 
       reserves.add(new JsonObject()
         .put("itemId", "bar")
-        .put("barcode", "456")
         .put("copiedItem", new JsonObject()
+          .put("barcode", "barcode_456")
           .put("permanentLocationObject", new JsonObject().put("discoveryDisplayName", "Never Visible")) // This should never be visible because discovery isn't suppressed
         )
       );
 
       reserves.add(new JsonObject()
         .put("itemId", "permanentSecretLocation")
-        .put("barcode", "invalid1")
         .put("copiedItem", new JsonObject()
+          .put("barcode", "invalid1")
           .put("permanentLocationObject", new JsonObject().put("discoveryDisplayName", "Secret Shelf"))
           .put("instanceDiscoverySuppress", true)
         )
@@ -103,13 +105,24 @@ public class LtiCoursesMockOkapi extends MockOkapi {
 
       reserves.add(new JsonObject()
         .put("itemId", "temporaryKnownLocation")
-        .put("barcode", "invalid2")
         .put("copiedItem", new JsonObject()
+          .put("barcode", "invalid2")
           .put("permanentLocationObject", new JsonObject().put("discoveryDisplayName", "Secret Shelf"))
           .put("temporaryLocationObject", new JsonObject().put("discoveryDisplayName", "Public Shelf"))
           .put("instanceDiscoverySuppress", true)
         )
       );
+
+      reserves.add(new JsonObject()
+      .put("itemId", "permanentSecretLocation")
+      .put("copiedItem", new JsonObject()
+        .put("barcode", "invalid3")
+        .put("permanentLocationObject", new JsonObject().put("discoveryDisplayName", "Not Visible")) // This should never be visible because the item has a `uri`
+        .put("instanceDiscoverySuppress", true)
+        .put("uri", "http://foobar.com")
+      )
+    );
+
     }
 
     ctx.response()

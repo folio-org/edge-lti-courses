@@ -1,6 +1,6 @@
 mixin reserve-list-item(reserve)
   li(class="reserve-list-item")
-    if reserve.getBoolean("suppressDiscovery")
+    if (reserve.getBoolean("suppressDiscovery") && !reserve.getBoolean("hasElectronicAccess"))
       span(class="reserve-title") #{reserve.getString("title")}
     else
       a(class="reserve-url" href=reserve.getString("uri") target="_parent") #{reserve.getString("title")}
@@ -8,7 +8,7 @@ mixin reserve-list-item(reserve)
     if (reserve.getString("primaryContributor"))
       span  - #{reserve.getString("primaryContributor")}
 
-    if (reserve.getBoolean("suppressDiscovery"))
+    if (reserve.getBoolean("suppressDiscovery") && !reserve.getBoolean("hasElectronicAccess"))
       span &nbsp;(available at #{reserve.getString("locationDisplayName")})
 
 ul(class="lti-course-reserves-list")
