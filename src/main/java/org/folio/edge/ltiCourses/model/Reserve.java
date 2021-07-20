@@ -18,6 +18,7 @@ public class Reserve {
   public String endDate;
   public String locationDisplayName;
   public Boolean suppressDiscovery;
+  public Boolean hasElectronicAccess;
 
   public Reserve(JsonObject json) {
     this.itemId = json.getString("itemId", "");
@@ -33,6 +34,7 @@ public class Reserve {
     this.title = item.getString("title", "");
     this.uri = item.getString("uri", "");
     this.suppressDiscovery = item.getBoolean("instanceDiscoverySuppress", false);
+    this.hasElectronicAccess = this.uri.length() > 0;
 
     // Get the physical location, preferring the temporary location over the permanent location.
     this.locationDisplayName = item.getJsonObject("permanentLocationObject", new JsonObject()).getString("discoveryDisplayName", "?");
@@ -72,6 +74,7 @@ public class Reserve {
       .put("endDate", endDate)
       .put("primaryContributor", primaryContributor)
       .put("locationDisplayName", locationDisplayName)
-      .put("suppressDiscovery", suppressDiscovery);
+      .put("suppressDiscovery", suppressDiscovery)
+      .put("hasElectronicAccess", hasElectronicAccess);
   }
 }

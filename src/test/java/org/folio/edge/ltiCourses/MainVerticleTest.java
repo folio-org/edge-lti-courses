@@ -323,9 +323,23 @@ public class MainVerticleTest {
         .response();
 
     String body = response.getBody().asString();
-    assertEquals(true, body.contains("(available at Secret Shelf)"));
-    assertEquals(true, body.contains("(available at Public Shelf)"));
+
+    // searchURL should be rendered with barcode interpolated
+    assertEquals(true, body.contains("barcode_123"));
+
+    // searchURL should be rendered with barcode despite existence of location object
     assertEquals(false, body.contains("(available at Never Visible)"));
+    assertEquals(true, body.contains("barcode_456"));
+
+    // suppressed from discovery with permanent location
+    assertEquals(true, body.contains("(available at Secret Shelf)"));
+
+    // suppressed from discovery with temporary location
+    assertEquals(true, body.contains("(available at Public Shelf)"));
+
+    // electronic access URI should be rendered despite suppressed discovery
+    assertEquals(false, body.contains("(available at Not Visible)"));
+    assertEquals(true, body.contains("http://foobar.com"));
   }
 
   @Test

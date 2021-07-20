@@ -41,7 +41,7 @@ public class MockLtiPlatform {
     this.noReservesMessage = "No reserves :(";
     this.oauthTokenUrl = "http://localhost:" + port + "/token";
     this.oidcAuthUrl = "http://localhost:" + port + "/oidc";
-    this.searchUrl = "http://localhost:" + port + "/search";
+    this.searchUrl = "http://localhost:" + port + "/search?barcode=[BARCODE]";
   }
 
   public JsonObject asJsonObject() {
