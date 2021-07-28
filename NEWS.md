@@ -1,4 +1,4 @@
-## 1.3.0 IN PROGRESS
+## 1.3.0 2021-07-28
 * Added different reserve-item rendering for reserve-instances that have `discoverySuppress` enabled.
 
 ## 1.2.0 2021-06-04
