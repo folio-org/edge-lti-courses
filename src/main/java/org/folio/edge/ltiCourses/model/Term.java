@@ -1,6 +1,8 @@
 package org.folio.edge.ltiCourses.model;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.folio.edge.ltiCourses.utils.DateUtils;
 
 import io.vertx.core.json.JsonObject;
@@ -9,7 +11,7 @@ public class Term {
   public String startDate;
   public String endDate;
 
-  public static final Logger logger = Logger.getLogger(Term.class);
+  public static final Logger logger = LogManager.getLogger(Term.class);
 
   Term(JsonObject json) {
     // Normalize our dates to just the YMD like is stored on the Reserve.

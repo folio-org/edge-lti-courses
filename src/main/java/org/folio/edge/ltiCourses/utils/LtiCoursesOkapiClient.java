@@ -1,7 +1,6 @@
 package org.folio.edge.ltiCourses.utils;
 
 import org.apache.http.client.ResponseHandler;
-import org.apache.log4j.Logger;
 
 import org.folio.edge.core.utils.OkapiClient;
 

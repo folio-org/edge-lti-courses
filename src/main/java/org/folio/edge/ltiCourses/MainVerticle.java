@@ -15,7 +15,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.EdgeVerticle;
 import org.folio.edge.ltiCourses.cache.BoxFileCache;
@@ -29,7 +31,7 @@ import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
 
 public class MainVerticle extends EdgeVerticle {
 
-  private static final Logger logger = Logger.getLogger(MainVerticle.class);
+  private static final Logger logger = LogManager.getLogger(MainVerticle.class);
 
   public MainVerticle() {
     super();
