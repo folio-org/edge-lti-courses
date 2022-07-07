@@ -8,7 +8,8 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.JsonArray;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import static org.folio.edge.ltiCourses.Constants.JWT_KID;
 
@@ -16,7 +17,7 @@ import static org.folio.edge.ltiCourses.Constants.JWT_KID;
 public class JwksHandler {
   protected RSAPublicKey publicKey;
 
-  private static final Logger logger = Logger.getLogger(JwksHandler.class);
+  private static final Logger logger = LogManager.getLogger(JwksHandler.class);
 
   public JwksHandler(RSAPublicKey publicKey) {
     this.publicKey = publicKey;

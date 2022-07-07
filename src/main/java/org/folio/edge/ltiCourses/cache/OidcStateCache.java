@@ -1,13 +1,15 @@
 package org.folio.edge.ltiCourses.cache;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.folio.edge.core.cache.Cache;
 import org.folio.edge.core.cache.Cache.Builder;
 import org.folio.edge.core.cache.Cache.CacheValue;
 
 public class OidcStateCache {
 
-  private static final Logger logger = Logger.getLogger(OidcStateCache.class);
+  private static final Logger logger = LogManager.getLogger(OidcStateCache.class);
 
   private static OidcStateCache instance = null;
 

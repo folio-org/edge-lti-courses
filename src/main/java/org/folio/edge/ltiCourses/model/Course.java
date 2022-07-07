@@ -8,7 +8,9 @@ import java.time.Period;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
 import org.folio.edge.ltiCourses.cache.BoxFileCache;
 
 import static org.folio.edge.ltiCourses.Constants.BOX_COM_URL_INDICATOR;
@@ -27,7 +29,7 @@ public class Course {
 
   private static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 
-  private static final Logger logger = Logger.getLogger(Course.class);
+  private static final Logger logger = LogManager.getLogger(Course.class);
 
   public Course (JsonObject json) {
     this.id = json.getString("id", "");

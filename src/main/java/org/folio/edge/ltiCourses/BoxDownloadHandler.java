@@ -6,7 +6,9 @@ import java.io.FileOutputStream;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.core.http.HttpHeaders;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.folio.edge.ltiCourses.cache.BoxFileCache;
 
 import com.box.sdk.BoxTransactionalAPIConnection;
@@ -15,7 +17,7 @@ import com.box.sdk.BoxFile;
 public class BoxDownloadHandler {
   protected BoxTransactionalAPIConnection api;
 
-  private static final Logger logger = Logger.getLogger(BoxDownloadHandler.class);
+  private static final Logger logger = LogManager.getLogger(BoxDownloadHandler.class);
 
   public BoxDownloadHandler(String appToken) {
     if (appToken == null || appToken.isEmpty()) {

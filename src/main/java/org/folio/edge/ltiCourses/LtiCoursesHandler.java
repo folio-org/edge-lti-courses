@@ -7,7 +7,8 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.security.SecureStore;
@@ -40,7 +41,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected String toolPublicKey;
   protected Boolean ignoreOIDCState;
 
-  private static final Logger logger = Logger.getLogger(LtiCoursesHandler.class);
+  private static final Logger logger = LogManager.getLogger(LtiCoursesHandler.class);
 
   public LtiCoursesHandler(
     SecureStore secureStore,

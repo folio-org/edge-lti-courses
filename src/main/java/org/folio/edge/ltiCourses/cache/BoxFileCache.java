@@ -1,6 +1,8 @@
 package org.folio.edge.ltiCourses.cache;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.folio.edge.core.cache.Cache;
 import org.folio.edge.core.cache.Cache.Builder;
 
@@ -8,7 +10,7 @@ import java.util.UUID;
 
 public class BoxFileCache {
 
-  private static final Logger logger = Logger.getLogger(BoxFileCache.class);
+  private static final Logger logger = LogManager.getLogger(BoxFileCache.class);
 
   private static BoxFileCache instance = null;
 
