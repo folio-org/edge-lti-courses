@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.folio</groupId>
   <artifactId>edge-lti-courses</artifactId>
-  <version>1.3.1</version>
+  <version>1.3.2-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>Edge API - Course Reserves LTI Tool</name>
@@ -17,7 +17,7 @@
     <url>https://github.com/folio-org/edge-lti-courses.git</url>
     <connection>scm:git:git://github.com/folio-org/edge-lti-courses.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/edge-lti-courses.git</developerConnection>
-    <tag>v1.3.1</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <licenses>
