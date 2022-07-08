@@ -1,3 +1,6 @@
+## 1.3.1 2022-07-08
+* Update dependenicies to latest stable versions. Update log4j to 2.x branch.
+
 ## 1.3.0 2021-07-28
 * Added different reserve-item rendering for reserve-instances that have `discoverySuppress` enabled.
 
