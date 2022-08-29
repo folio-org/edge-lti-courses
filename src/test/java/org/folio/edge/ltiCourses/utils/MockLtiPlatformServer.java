@@ -67,7 +67,7 @@ public class MockLtiPlatformServer {
     invalidAlgorithm = Algorithm.RSA256((RSAPublicKey) invalidKP.getPublic(), (RSAPrivateKey) invalidKP.getPrivate());
 
     final Async async = context.async();
-    server.requestHandler(defineRoutes()::accept).listen(port, result -> {
+    server.requestHandler(defineRoutes()).listen(port, result -> {
       if (result.failed()) {
         logger.warn(result.cause());
       }

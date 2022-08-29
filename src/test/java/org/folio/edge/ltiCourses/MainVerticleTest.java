@@ -95,13 +95,17 @@ public class MainVerticleTest {
 
     vertx = Vertx.vertx();
 
-    System.setProperty(SYS_PORT, String.valueOf(serverPort));
-    System.setProperty(SYS_OKAPI_URL, "http://localhost:" + okapiPort);
-    System.setProperty(SYS_SECURE_STORE_PROP_FILE, "src/main/resources/ephemeral.properties");
-    System.setProperty(SYS_REQUEST_TIMEOUT_MS, String.valueOf(requestTimeoutMs));
-    System.setProperty(OIDC_TTL, "3000");
+    JsonObject config = new JsonObject();
+
+    config.put(SYS_PORT, String.valueOf(serverPort))
+      .put(SYS_OKAPI_URL, "http://localhost:" + okapiPort)
+      .put(SYS_SECURE_STORE_PROP_FILE, "src/main/resources/ephemeral.properties")
+      .put(SYS_REQUEST_TIMEOUT_MS, String.valueOf(requestTimeoutMs))
+      .put(OIDC_TTL, "3000");
 
     final DeploymentOptions opt = new DeploymentOptions();
+    opt.setConfig(config);
+
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
 
     RestAssured.baseURI = "http://localhost:" + serverPort;
@@ -112,7 +116,24 @@ public class MainVerticleTest {
   @AfterClass
   public static void tearDownOnce(TestContext context) {
     logger.info("Shutting down server");
-    final Async async = context.async();
+    //final Async async = context.async();
+
+    /*
+    vertx.close()
+    .onSuccess(x -> logger.info("Successfully shut down edge-common server"))
+    .compose(x -> mockOkapi.close())
+    .onSuccess(x -> logger.info("Successfully shut down mock Okapi"))
+    .onComplete(context.asyncAssertSuccess());
+     */
+
+    vertx.close()
+      .onSuccess( x -> logger.info("Successfully shut down edge-lti-courses server") )
+      .compose( x -> mockOkapi.close())
+      .onSuccess( x -> logger.info("Successfully shut down mock Okapi"))
+      .onComplete(context.asyncAssertSuccess());
+
+
+/*
     vertx.close(res -> {
       if (res.failed()) {
         logger.error("Failed to shut down edge-lti-courses server", res.cause());
@@ -125,6 +146,8 @@ public class MainVerticleTest {
       mockOkapi.close(context);
       async.complete();
     });
+  }
+  */
   }
 
   @Test

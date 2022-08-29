@@ -9,6 +9,10 @@ import static org.folio.edge.ltiCourses.Constants.IGNORE_OIDC_STATE;
 import static org.folio.edge.ltiCourses.utils.PemUtils.readPrivateKeyFromFile;
 import static org.folio.edge.ltiCourses.utils.PemUtils.readPublicKeyFromFile;
 
+import static org.folio.edge.core.Constants.SYS_OKAPI_URL;
+import static org.folio.edge.core.Constants.SYS_REQUEST_TIMEOUT_MS;
+
+
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -19,7 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.folio.edge.core.ApiKeyHelper;
-import org.folio.edge.core.EdgeVerticle;
+import org.folio.edge.core.EdgeVerticleHttp;
 import org.folio.edge.ltiCourses.cache.BoxFileCache;
 import org.folio.edge.ltiCourses.cache.OidcStateCache;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
@@ -29,13 +33,15 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
 
-public class MainVerticle extends EdgeVerticle {
+public class MainVerticle extends EdgeVerticleHttp {
 
   private static final Logger logger = LogManager.getLogger(MainVerticle.class);
 
   public MainVerticle() {
     super();
   }
+
+  
 
   // We don't currently use the tool keys because this module only supports Resource Links at the moment which
   // are not signed. Future development to add Deep Linking (or other parts of the LTI spec) would require
@@ -97,8 +103,8 @@ public class MainVerticle extends EdgeVerticle {
     // Next, set up the common Edge module stuff.
     final LtiCoursesOkapiClientFactory ocf = new LtiCoursesOkapiClientFactory(
         vertx,
-        okapiURL,
-        reqTimeoutMs
+        config().getString(SYS_OKAPI_URL),
+        config().getInteger(SYS_REQUEST_TIMEOUT_MS)
     );
 
     final ApiKeyHelper apiKeyHelper = new ApiKeyHelper("PATH");
