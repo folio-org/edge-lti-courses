@@ -85,21 +85,19 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
               return;
             }
 
-            response.bodyHandler(body -> {
-              LtiPlatform platform = new LtiPlatform(new JsonObject(body.toString()));
-              if (!platform.issuer.equals(issuer)) {
-                renderBadRequest(ctx, "No LTI Platform is known for this request's issuer.");
-                return;
-              }
+            LtiPlatform platform = new LtiPlatform(response.bodyAsJsonObject());
+            if (!platform.issuer.equals(issuer)) {
+              renderBadRequest(ctx, "No LTI Platform is known for this request's issuer.");
+              return;
+            }
 
-              ctx.put("platform", platform);
+            ctx.put("platform", platform);
 
-              action.apply(
-                coursesOkapiClient,
-                params,
-                platform
-              );
-            });
+            action.apply(
+              coursesOkapiClient,
+              params,
+              platform
+            );
           },
           t -> handleProxyException(ctx, t)
         );
@@ -134,48 +132,43 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         return;
       }
 
-      courseResp.bodyHandler(courseBody -> {
-        JsonObject courseJson;
+      JsonObject courseJson;
+      try {
+        courseJson = courseResp.bodyAsJsonObject()
+          .getJsonArray("courses")
+          .getJsonObject(0);
+      } catch (Exception exception) {
+        renderNoReserves(ctx);
+        return;
+      }
 
-        try {
-          courseJson = new JsonObject(courseBody.toString())
-            .getJsonArray("courses")
-            .getJsonObject(0);
-        } catch (Exception exception) {
-          renderNoReserves(ctx);
-          return;
-        }
+      Course course;
+      try {
+        course = new Course(courseJson);
+      } catch (Exception exception) {
+        logger.error("Failed to parse course from JsonObject: " + courseJson.encode());
+        renderNoReserves(ctx);
+        return;
+      }
 
-        Course course;
-        try {
-          course = new Course(courseJson);
-        } catch (Exception exception) {
-          logger.error("Failed to parse course from JsonObject: " + courseJson.encode());
-          renderNoReserves(ctx);
-          return;
-        }
+      course.setSearchUrl(platform.searchUrl);
+      if (platform.boxDirectDownload) {
+        course.enableBoxDirectDownload();
+      }
 
-        course.setSearchUrl(platform.searchUrl);
-        if (platform.boxDirectDownload) {
-          course.enableBoxDirectDownload();
-        }
+      client.getCourseReserves(
+        course.courseListingId,
+        reservesResp -> {
+          if (reservesResp.statusCode() != 200) {
+            renderBadRequest(ctx, reservesResp.statusMessage());
+            return;
+          }
 
-        client.getCourseReserves(
-          course.courseListingId,
-          reservesResp -> {
-            if (reservesResp.statusCode() != 200) {
-              renderBadRequest(ctx, reservesResp.statusMessage());
-              return;
-            }
-
-            reservesResp.bodyHandler(reservesBody -> {
-              course.setReserves(reservesBody.toString());
-              action.apply(course);
-            });
-          },
-          t -> handleProxyException(ctx, t)
-        );
-      });
+          course.setReserves(reservesResp.bodyAsString());
+          action.apply(course);
+        },
+        t -> handleProxyException(ctx, t)
+      );
     }, t -> handleProxyException(ctx, t));
   }
 

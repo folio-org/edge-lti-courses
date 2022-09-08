@@ -6,7 +6,7 @@ import io.vertx.core.Vertx;
 
 public class LtiCoursesOkapiClientFactory extends OkapiClientFactory {
 
-  public LtiCoursesOkapiClientFactory(Vertx vertx, String okapiURL, long reqTimeoutMs) {
+  public LtiCoursesOkapiClientFactory(Vertx vertx, String okapiURL, int reqTimeoutMs) {
     super(vertx, okapiURL, reqTimeoutMs);
   }
 
