@@ -1,14 +1,10 @@
 package org.folio.edge.ltiCourses.utils;
 
 import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpResponse;
-import org.apache.http.client.ResponseHandler;
-
-import org.folio.edge.core.utils.OkapiClient;
-
-import io.vertx.core.Vertx;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.HttpResponse;
+import org.folio.edge.core.utils.OkapiClient;
 
 public class LtiCoursesOkapiClient extends OkapiClient {
 
