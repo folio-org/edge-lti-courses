@@ -1,5 +1,10 @@
+## 1.3.2 2022-09-08
+* Update edge-common to 4.4.x branch (EDGLTI-3)
+* Update vert.x libraries to 4.x branch (EDGLTI-2)
+* Update log4j to 2.18.x branch (EDGLTI-1)
+
 ## 1.3.1 2022-07-08
-* Update dependenicies to latest stable versions. Update log4j to 2.x branch.
+* Update dependencies to latest stable versions. Update log4j to 2.x branch.
 
 ## 1.3.0 2021-07-28
 * Added different reserve-item rendering for reserve-instances that have `discoverySuppress` enabled.
