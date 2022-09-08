@@ -85,15 +85,15 @@ public class MainVerticleTest {
     List<String> knownTenants = new ArrayList<>();
     knownTenants.add(ApiKeyUtils.parseApiKey(apiKey).tenantId);
 
-    mockOkapi = spy(new LtiCoursesMockOkapi(okapiPort, knownTenants));
-    mockOkapi.start(context);
-
-    mockLtiPlatformServer = spy(new MockLtiPlatformServer(platformPort));
-    mockLtiPlatformServer.start(context);
-
-    platform = MockLtiPlatform.initialize(platformPort);
+    RestAssured.baseURI = "http://localhost:" + serverPort;
+    RestAssured.port = serverPort;
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
     vertx = Vertx.vertx();
+
+    mockLtiPlatformServer = spy(new MockLtiPlatformServer(platformPort, vertx));
+
+    platform = MockLtiPlatform.initialize(platformPort);
 
     System.setProperty(SYS_PORT, String.valueOf(serverPort));
     System.setProperty(SYS_OKAPI_URL, "http://localhost:" + okapiPort);
@@ -101,30 +101,18 @@ public class MainVerticleTest {
     System.setProperty(SYS_REQUEST_TIMEOUT_MS, String.valueOf(requestTimeoutMs));
     System.setProperty(OIDC_TTL, "3000");
 
-    final DeploymentOptions opt = new DeploymentOptions();
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
-
-    RestAssured.baseURI = "http://localhost:" + serverPort;
-    RestAssured.port = serverPort;
-    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+    mockOkapi = spy(new LtiCoursesMockOkapi(okapiPort, knownTenants));
+    mockOkapi.start()
+      .compose(x -> mockLtiPlatformServer.start())
+      .compose(x -> vertx.deployVerticle(MainVerticle.class.getName()))
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @AfterClass
   public static void tearDownOnce(TestContext context) {
     logger.info("Shutting down server");
-    final Async async = context.async();
-    vertx.close(res -> {
-      if (res.failed()) {
-        logger.error("Failed to shut down edge-lti-courses server", res.cause());
-        fail(res.cause().getMessage());
-      } else {
-        logger.info("Successfully shut down edge-lti-courses server");
-      }
-
-      logger.info("Shutting down mock Okapi");
-      mockOkapi.close(context);
-      async.complete();
-    });
+    mockOkapi.close().compose(x -> vertx.close())
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @Test

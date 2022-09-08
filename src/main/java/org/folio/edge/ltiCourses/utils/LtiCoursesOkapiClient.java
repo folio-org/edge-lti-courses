@@ -1,12 +1,10 @@
 package org.folio.edge.ltiCourses.utils;
 
-import org.apache.http.client.ResponseHandler;
-
-import org.folio.edge.core.utils.OkapiClient;
-
-import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.HttpResponse;
+import org.folio.edge.core.utils.OkapiClient;
 
 public class LtiCoursesOkapiClient extends OkapiClient {
 
@@ -14,13 +12,13 @@ public class LtiCoursesOkapiClient extends OkapiClient {
     super(client);
   }
 
-  protected LtiCoursesOkapiClient(Vertx vertx, String okapiURL, String tenant, long timeout) {
+  protected LtiCoursesOkapiClient(Vertx vertx, String okapiURL, String tenant, int timeout) {
     super(vertx, okapiURL, tenant, timeout);
   }
 
   public void getPlatform(
     String issuer,
-    Handler<HttpClientResponse> responseHandler,
+    Handler<HttpResponse<Buffer>> responseHandler,
     Handler<Throwable> exceptionHandler
   ) {
     // mod-configuration can't run queries with slashes in them (even if they're url-encoded),
@@ -40,7 +38,7 @@ public class LtiCoursesOkapiClient extends OkapiClient {
 
   public void getCourse(
     String query,
-    Handler<HttpClientResponse> responseHandler,
+    Handler<HttpResponse<Buffer>> responseHandler,
     Handler<Throwable> exceptionHandler
   ) {
     get(
@@ -53,7 +51,7 @@ public class LtiCoursesOkapiClient extends OkapiClient {
 
   public void getCourseReserves(
     String courseId,
-    Handler<HttpClientResponse> responseHandler,
+    Handler<HttpResponse<Buffer>> responseHandler,
     Handler<Throwable> exceptionHandler
   ) {
     get(

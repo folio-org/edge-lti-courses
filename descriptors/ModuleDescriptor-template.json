@@ -4,10 +4,6 @@
   "provides": [],
   "requires": [
     {
-      "id": "course-storage",
-      "version": "0.1"
-    },
-    {
       "id": "course-reserves-storage",
       "version": "0.3"
     },
