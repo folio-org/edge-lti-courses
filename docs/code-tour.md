@@ -27,7 +27,7 @@ Give a technical overview of how this program is structured. We expect decent fa
 
 ## Entry Point: `MainVerticle`
 
-Like most Folio edge applications, a suitable starting place to start our tour is the [`MainVerticle`](https://github.com/folio-org/edge-lti-courses/blob/master/src/main/java/org/folio/edge/ltiCourses/MainVerticle.java). Note it extends `EdgeVerticle`, which we use for a lot of core functionality. In general, the `org.folio.edge.core` package gives us a lot that we use.
+Like most Folio edge applications, a suitable starting place to start our tour is the [`MainVerticle`](https://github.com/folio-org/edge-lti-courses/blob/master/src/main/java/org/folio/edge/ltiCourses/MainVerticle.java). Note it extends `EdgeVerticleHttp`, which we use for a lot of core functionality. In general, the `org.folio.edge.core` package gives us a lot that we use.
 
 The [`defineRoutes`](https://github.com/folio-org/edge-lti-courses/blob/master/src/main/java/org/folio/edge/ltiCourses/MainVerticle.java#L83) method does what it says on the tin. After some initial setup, we define what routes the edge app provides and what methods are responsibile for handling those routes.
 
