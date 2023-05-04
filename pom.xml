@@ -38,6 +38,13 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>2.20.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
         <version>4.4.1</version>
@@ -141,14 +148,11 @@
       <artifactId>slf4j-reload4j</artifactId>
       <version>2.0.7</version>
       <scope>test</scope>
-  </dependency>
-  
-    <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j -->
+    </dependency>
+
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <version>2.20.0</version>
-      <type>pom</type>
+      <artifactId>log4j-core</artifactId>
     </dependency>
 
     <!-- include slf4j bridges to proxy all logging from library deps to
@@ -242,6 +246,12 @@
                         <exclude>META-INF/*.DSA</exclude>
                         <exclude>META-INF/*.RSA</exclude>
                     </excludes>
+                </filter>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>**/Log4j2Plugins.dat</exclude>
+                  </excludes>
                 </filter>
               </filters>
               <transformers>
