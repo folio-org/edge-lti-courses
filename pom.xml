@@ -38,9 +38,16 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>2.20.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.3.3</version>
+        <version>4.4.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -65,25 +72,34 @@
     <dependency>
       <groupId>org.folio</groupId>
       <artifactId>edge-common</artifactId>
-      <version>4.4.1</version>
+      <version>4.4.3</version>
     </dependency>
 
     <dependency>
       <groupId>com.auth0</groupId>
       <artifactId>java-jwt</artifactId>
-      <version>3.19.2</version>
+      <version>4.4.0</version>
     </dependency>
 
     <dependency>
       <groupId>com.auth0</groupId>
       <artifactId>jwks-rsa</artifactId>
-      <version>0.21.1</version>
+      <version>0.22.0</version>
     </dependency>
 
     <dependency>
         <groupId>com.box</groupId>
         <artifactId>box-java-sdk</artifactId>
-        <version>2.58.0</version>
+        <version>4.1.0</version>
+    </dependency>
+
+    <!-- remove when box-java-sdk ships with jose4j >= 0.9.3
+         https://security.snyk.io/vuln/SNYK-JAVA-ORGBITBUCKETBC-5488281
+    -->
+    <dependency>
+    <groupId>org.bitbucket.b_c</groupId>
+    <artifactId>jose4j</artifactId>
+    <version>0.9.3</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on -->
@@ -97,7 +113,7 @@
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-ssm</artifactId>
-      <version>1.12.254</version>
+      <version>1.12.459</version>
       <exclusions>
         <exclusion>
           <groupId>commons-logging</groupId>
@@ -106,16 +122,16 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpcore</artifactId>
-      <version>4.4.15</version>
+      <groupId>org.apache.httpcomponents.core5</groupId>
+      <artifactId>httpcore5</artifactId>
+      <version>5.2.1</version>
     </dependency>
 
     <!-- Only needed for VaultStore -->
     <dependency>
       <groupId>com.bettercloud</groupId>
       <artifactId>vault-java-driver</artifactId>
-      <version>3.1.0</version>
+      <version>5.1.0</version>
     </dependency>
 
     <!-- logging see http://www.slf4j.org/legacy.html -->
@@ -123,23 +139,20 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.36</version>
+      <version>2.0.7</version>
     </dependency>
 
     <!-- we use log4j as our logging implementation -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-reload4j</artifactId>
-      <version>1.7.36</version>
+      <version>2.0.7</version>
       <scope>test</scope>
-  </dependency>
-  
-    <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j -->
+    </dependency>
+
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <version>2.18.0</version>
-      <type>pom</type>
+      <artifactId>log4j-core</artifactId>
     </dependency>
 
     <!-- include slf4j bridges to proxy all logging from library deps to
@@ -147,7 +160,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>jcl-over-slf4j</artifactId>
-      <version>1.7.36</version>
+      <version>2.0.7</version>
     </dependency>
 
     <!-- Test dependencies -->
@@ -160,13 +173,13 @@
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <version>3.0.0</version>
+      <version>4.2.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>nl.jqno.equalsverifier</groupId>
       <artifactId>equalsverifier</artifactId>
-      <version>3.4.2</version>
+      <version>3.14.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -177,13 +190,13 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>4.6.0</version>
+      <version>5.3.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
-      <version>5.1.0</version>
+      <version>5.3.0</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -199,7 +212,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
+        <version>3.11.0</version>
         <configuration>
           <release>11</release>
           <encoding>UTF-8</encoding>
@@ -209,14 +222,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.1</version>
-        <configuration>
-          <!-- TODO: update to version 3.0.0 and remove useSystemClassLoader
-               https://issues.folio.org/browse/FOLIO-1609
-               https://issues.apache.org/jira/browse/SUREFIRE-1588
-          -->
-          <useSystemClassLoader>false</useSystemClassLoader>
-        </configuration>
+        <version>3.0.0</version>
       </plugin>
     <!-- You only need the part below if you want to build your application
       into a fat executable jar. This is a jar that contains all the dependencies
@@ -224,7 +230,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.2.1</version>
+        <version>3.4.1</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -240,6 +246,12 @@
                         <exclude>META-INF/*.DSA</exclude>
                         <exclude>META-INF/*.RSA</exclude>
                     </excludes>
+                </filter>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>**/Log4j2Plugins.dat</exclude>
+                  </excludes>
                 </filter>
               </filters>
               <transformers>
@@ -263,7 +275,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>1.4.0</version>
+        <version>3.1.0</version>
         <executions>
           <execution>
             <!-- run the application using the fat jar -->
@@ -283,7 +295,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-resources-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.3.1</version>
         <executions>
           <execution>
             <id>filter-descriptor-inputs</id>
@@ -308,7 +320,7 @@
       <plugin>
         <groupId>com.coderplus.maven.plugins</groupId>
         <artifactId>copy-rename-maven-plugin</artifactId>
-        <version>1.0</version>
+        <version>1.0.1</version>
         <executions>
           <execution>
             <id>rename-descriptor-outputs</id>
@@ -352,7 +364,7 @@
       <plugins>
         <plugin>
           <artifactId>maven-release-plugin</artifactId>
-          <version>2.5.3</version>
+          <version>3.0.0</version>
         </plugin>
       </plugins>
     </pluginManagement>
