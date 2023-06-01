@@ -1,3 +1,6 @@
+## 1.3.3 2023-06-01
+* Upgrade dependencies fixing vulns ([EDGLTI-4](https://issues.folio.org/browse/EDGLTI-4))
+
 ## 1.3.2 2022-09-08
 * Update edge-common to 4.4.x branch (EDGLTI-3)
 * Update vert.x libraries to 4.x branch (EDGLTI-2)
