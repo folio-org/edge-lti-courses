@@ -1,3 +1,6 @@
+## 1.3.4 2024-03-21
+* Upgrade vertx libs to 4.5.3 ([EDGLTI-9](https://folio-org.atlassian.net/browse/EDGLTI-9))
+
 ## 1.3.3 2023-06-01
 * Upgrade dependencies fixing vulns ([EDGLTI-4](https://issues.folio.org/browse/EDGLTI-4))
 
