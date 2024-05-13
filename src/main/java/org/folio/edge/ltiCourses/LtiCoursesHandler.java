@@ -12,12 +12,12 @@ import org.apache.logging.log4j.Logger;
 
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.security.SecureStore;
+import org.folio.edge.core.utils.OkapiClientFactory;
 import org.folio.edge.ltiCourses.cache.OidcStateCache;
 import org.folio.edge.ltiCourses.model.Course;
 import org.folio.edge.ltiCourses.model.LtiPlatform;
 import org.folio.edge.ltiCourses.utils.LtiContextClaim;
 import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClient;
-import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
 
 import static org.folio.edge.ltiCourses.Constants.LTI_MESSAGE_TYPE_RESOURCE_LINK_REQUEST;
 
@@ -45,7 +45,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
 
   public LtiCoursesHandler(
     SecureStore secureStore,
-    LtiCoursesOkapiClientFactory ocf,
+    OkapiClientFactory ocf,
     ApiKeyHelper apiKeyHelper,
     RSAPrivateKey privateKey,
     JadeTemplateEngine jadeTemplateEngine,
