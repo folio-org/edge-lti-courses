@@ -134,6 +134,13 @@
       <version>5.1.0</version>
     </dependency>
 
+    <!-- Library provides the basic cryptographic functionality complying with FIPS -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bc-fips</artifactId>
+      <version>1.0.2.5</version>
+    </dependency>
+
     <!-- logging see http://www.slf4j.org/legacy.html -->
     <!-- we use SLF4J for our logging interface -->
     <dependency>
