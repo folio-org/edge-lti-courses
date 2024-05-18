@@ -75,7 +75,7 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
           return;
         }
 
-        LtiCoursesOkapiClient coursesOkapiClient = (LtiCoursesOkapiClient) client;
+        LtiCoursesOkapiClient coursesOkapiClient = new LtiCoursesOkapiClient(client);
         coursesOkapiClient.getPlatform(
           issuer,
           response -> {
