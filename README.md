@@ -39,18 +39,40 @@ Values common to Folio Edge modules are configured using the methods made availa
 | `port`                      | `8081`               Server port to listen on                                                                                                                                                                                                                                                                                                          | `8081`        |
 | `okapi_url`                 | Where to find Okapi (URL)                                                                                                                                                                                                                                                                                                                              | *required*    |
 | `request_timeout_ms`        | Request Timeout                                                                                                                                                                                                                                                                                                                                        | `30000`       |
-| `ssl_enabled`               | Set whether SSL/TLS is enabled for Vertx Http Server                                                                                                                                                                                                                                                                                                   | `false`       |
-| `keystore_type`             | Set the key store type                                                                                                                                                                                                                                                                                                                                 | `NA`          |
-| `keystore_provider`         | Set the provider name of the key store                                                                                                                                                                                                                                                                                                                 | `NA`          |
-| `keystore_path`             | Set the path to the key store                                                                                                                                                                                                                                                                                                                          | `NA`          |
-| `keystore_password`         | Set the password for the key store                                                                                                                                                                                                                                                                                                                     | `NA`          |
-| `key_alias`                 | Optional identifier that points to a specific key within the key store                                                                                                                                                                                                                                                                                 | `NA`          |
-| `key_alias_password`        | Optional param that points to a password of `key_alias` if it protected                                                                                                                                                                                                                                                                                | `NA`          |
 | `log_level`                 | Log4j Log Level                                                                                                                                                                                                                                                                                                                                        | `INFO`        |
 | `token_cache_capacity`      | Max token cache size                                                                                                                                                                                                                                                                                                                                   | `100`         |
 | `token_cache_ttl_ms`        | How long to cache JWTs, in milliseconds (ms)                                                                                                                                                                                                                                                                                                           | `100`         |
 | `secure_store`              | Type of secure store to use.  Valid: `Ephemeral`, `AwsSsm`, `Vault`                                                                                                                                                                                                                                                                                    | `Ephemeral`   |
 | `secure_store_props`        | Path to a properties file specifying secure store configuration                                                                                                                                                                                                                                                                                        | `NA`          |
+
+### System Properties for TLS configuration for Http server
+To configure Transport Layer Security (TLS) for HTTP server in edge module, the following configuration parameters should be used.
+Parameters marked as Required are required only in case when ssl_enabled is set to true.
+
+| Property                          | Default           | Description                                                                                 |
+|-----------------------------------|-------------------|---------------------------------------------------------------------------------------------|
+| `http-server.ssl_enabled`         | `false`           | Set whether SSL/TLS is enabled for Vertx Http Server                                        |
+| `http-server.keystore_type`       | `NA`              | (Required). Set the type of the keystore. Common types include `JKS`, `PKCS12`, and `BCFKS` |
+| `http-server.keystore_provider`   | `NA`              | Set the provider name of the key store                                                      |
+| `http-server.keystore_path`       | `NA`              | (Required). Set the location of the keystore file in the local file system                  |
+| `http-server.keystore_password`   | `NA`              | (Required). Set the password for the keystore                                               |
+| `http-server.key_alias`           | `NA`              | Set the alias of the key within the keystore.                                               |
+| `http-server.key_alias_password`  | `NA`              | Point to a password of `key_alias` if it is protected                                       |
+
+### System Properties for TLS configuration for Web Client
+To configure Transport Layer Security (TLS) for Web clients in the edge module, you can use the following configuration parameters.
+Truststore parameters for configuring Web clients are optional even when ssl_enabled = true.
+If truststore parameters need to be populated - truststore_type, truststore_path, truststore_password - are required.
+
+| Property                          | Default           | Description                                                                     |
+|-----------------------------------|-------------------|---------------------------------------------------------------------------------|
+| `web-client.ssl_enabled`          | `false`           | Set whether SSL/TLS is enabled for Vertx Http Server                            |
+| `web-client.truststore_type`      | `NA`              | Set the type of the keystore. Common types include `JKS`, `PKCS12`, and `BCFKS` |
+| `web-client.truststore_provider`  | `NA`              | Set the provider name of the key store                                          |
+| `web-client.truststore_path`      | `NA`              | Set the location of the keystore file in the local file system                  |
+| `web-client.truststore_password`  | `NA`              | Set the password for the keystore                                               |
+| `web-client.key_alias`            | `NA`              | Set the alias of the key within the keystore.                                   |
+| `web-client.key_alias_password`   | `NA`              | Point to a password of `key_alias` if it is protected                           |
 
 ### LTI Platforms
 

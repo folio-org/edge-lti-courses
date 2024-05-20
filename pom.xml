@@ -33,16 +33,6 @@
 
     <!-- the main class -->
     <exec.mainClass>org.folio.edge.ltiCourses.MainVerticle</exec.mainClass>
-
-    <sonar.exclusions>
-      src/main/java/org/folio/edge/ltiCourses/model/**,
-      src/main/java/org/folio/edge/ltiCourses/LtiCoursesLauncher.java
-    </sonar.exclusions>
-
-    <!--Dependency properties-->
-    <bc-fips.version>1.0.2.5</bc-fips.version>
-    <bcpkix-fips.version>1.0.7</bcpkix-fips.version>
-    <bctls-fips.version>1.0.19</bctls-fips.version>
   </properties>
 
   <dependencyManagement>
@@ -142,23 +132,6 @@
       <groupId>com.bettercloud</groupId>
       <artifactId>vault-java-driver</artifactId>
       <version>5.1.0</version>
-    </dependency>
-
-    <!-- Libraries provide the basic cryptographic functionality complying with FIPS -->
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bc-fips</artifactId>
-      <version>${bc-fips.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpkix-fips</artifactId>
-      <version>${bcpkix-fips.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bctls-fips</artifactId>
-      <version>${bctls-fips.version}</version>
     </dependency>
 
     <!-- logging see http://www.slf4j.org/legacy.html -->
@@ -284,7 +257,7 @@
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
-                    <Main-Class>org.folio.edge.ltiCourses.LtiCoursesLauncher</Main-Class>
+                    <Main-Class>io.vertx.core.Launcher</Main-Class>
                     <Main-Verticle>${exec.mainClass}</Main-Verticle>
                   </manifestEntries>
                 </transformer>
