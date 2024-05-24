@@ -59,12 +59,12 @@ defined in `edge-common`, this module also uses the following system properties.
 To configure Transport Layer Security (TLS) for HTTP server in edge module, the following configuration parameters should be used.
 Parameters marked as Required are required only in case when ssl_enabled is set to true.
 
-| Property                                              | Default           | Description                                                                                 |
-|-------------------------------------------------------|-------------------|---------------------------------------------------------------------------------------------|
-| `SPRING_SSL_BUNDLE_JKS_WEB-SERVER_KEYSTORE_TYPE`      | `NA`              | (Required). Set the type of the keystore. Common types include `JKS`, `PKCS12`, and `BCFKS` |
-| `SPRING_SSL_BUNDLE_JKS_WEB-SERVER_KEYSTORE_PATH`      | `NA`              | (Required). Set the location of the keystore file in the local file system                  |
-| `SPRING_SSL_BUNDLE_JKS_WEB-SERVER_KEYSTORE_PASSWORD`  | `NA`              | (Required). Set the password for the keystore                                               |
-| `SPRING_SSL_BUNDLE_JKS_WEB-SERVER_KEY_ALIAS`          | `NA`              | Set the alias of the key within the keystore.                                               |
+| Property                                             | Default           | Description                                                                                 |
+|------------------------------------------------------|-------------------|---------------------------------------------------------------------------------------------|
+| `SPRING_SSL_BUNDLE_JKS_WEB-SERVER_KEYSTORE_TYPE`     | `NA`              | (Required). Set the type of the keystore. Common types include `JKS`, `PKCS12`, and `BCFKS` |
+| `SPRING_SSL_BUNDLE_JKS_WEB-SERVER_KEYSTORE_LOCATION` | `NA`              | (Required). Set the location of the keystore file in the local file system                  |
+| `SPRING_SSL_BUNDLE_JKS_WEB-SERVER_KEYSTORE_PASSWORD` | `NA`              | (Required). Set the password for the keystore                                               |
+| `SPRING_SSL_BUNDLE_JKS_WEB-SERVER_KEY_ALIAS`         | `NA`              | Set the alias of the key within the keystore.                                               |
 
 ### Env variables for TLS configuration for Web Client
 
