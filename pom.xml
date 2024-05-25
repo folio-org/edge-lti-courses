@@ -93,13 +93,14 @@
         <version>4.1.0</version>
     </dependency>
 
-    <!-- remove when box-java-sdk ships with jose4j >= 0.9.3
+    <!-- remove when box-java-sdk ships with jose4j >= 0.9.4
          https://security.snyk.io/vuln/SNYK-JAVA-ORGBITBUCKETBC-5488281
+         https://www.cve.org/CVERecord?id=CVE-2023-51775
     -->
     <dependency>
     <groupId>org.bitbucket.b_c</groupId>
     <artifactId>jose4j</artifactId>
-    <version>0.9.3</version>
+    <version>0.9.4</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on -->
