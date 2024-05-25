@@ -113,7 +113,7 @@
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-ssm</artifactId>
-      <version>1.12.459</version>
+      <version>1.12.729</version>
       <exclusions>
         <exclusion>
           <groupId>commons-logging</groupId>
