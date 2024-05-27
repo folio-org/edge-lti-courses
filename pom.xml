@@ -90,16 +90,7 @@
     <dependency>
         <groupId>com.box</groupId>
         <artifactId>box-java-sdk</artifactId>
-        <version>4.1.0</version>
-    </dependency>
-
-    <!-- remove when box-java-sdk ships with jose4j >= 0.9.3
-         https://security.snyk.io/vuln/SNYK-JAVA-ORGBITBUCKETBC-5488281
-    -->
-    <dependency>
-    <groupId>org.bitbucket.b_c</groupId>
-    <artifactId>jose4j</artifactId>
-    <version>0.9.3</version>
+        <version>4.9.1</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on -->
@@ -113,7 +104,7 @@
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-ssm</artifactId>
-      <version>1.12.459</version>
+      <version>1.12.729</version>
       <exclusions>
         <exclusion>
           <groupId>commons-logging</groupId>
