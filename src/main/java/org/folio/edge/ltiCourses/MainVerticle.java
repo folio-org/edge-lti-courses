@@ -20,9 +20,10 @@ import org.apache.logging.log4j.Logger;
 
 import org.folio.edge.core.ApiKeyHelper;
 import org.folio.edge.core.EdgeVerticleHttp;
+import org.folio.edge.core.utils.OkapiClientFactory;
+import org.folio.edge.core.utils.OkapiClientFactoryInitializer;
 import org.folio.edge.ltiCourses.cache.BoxFileCache;
 import org.folio.edge.ltiCourses.cache.OidcStateCache;
-import org.folio.edge.ltiCourses.utils.LtiCoursesOkapiClientFactory;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
@@ -95,11 +96,7 @@ public class MainVerticle extends EdgeVerticleHttp {
     JadeTemplateEngine jadeTemplateEngine = JadeTemplateEngine.create(vertx);
 
     // Next, set up the common Edge module stuff.
-    final LtiCoursesOkapiClientFactory ocf = new LtiCoursesOkapiClientFactory(
-        vertx,
-        config().getString(org.folio.edge.core.Constants.SYS_OKAPI_URL),
-        config().getInteger(org.folio.edge.core.Constants.SYS_REQUEST_TIMEOUT_MS)
-    );
+    final OkapiClientFactory ocf = OkapiClientFactoryInitializer.createInstance(vertx, config());
 
     final ApiKeyHelper apiKeyHelper = new ApiKeyHelper("PATH");
 
