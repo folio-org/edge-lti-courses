@@ -1,3 +1,6 @@
+## 1.3.5 2025-05-28
+* Upgrade dependencies to support security features ([EDGELTI-15](https://folio-org.atlassian.net/browse/EDGLTI-15))
+
 ## 1.3.4 2024-03-21
 * Upgrade vertx libs to 4.5.3 ([EDGLTI-9](https://folio-org.atlassian.net/browse/EDGLTI-9))
 
