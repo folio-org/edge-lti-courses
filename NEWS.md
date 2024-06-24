@@ -1,4 +1,7 @@
-## 1.3.5 2025-05-28
+## 1.3.6 2024-06-24
+* Upgrade vertx version to 4.5.8 ([EDGLTI-16](https://folio-org.atlassian.net/browse/EDGLTI-16))
+
+## 1.3.5 2024-05-28
 * Upgrade dependencies to support security features ([EDGELTI-15](https://folio-org.atlassian.net/browse/EDGLTI-15))
 
 ## 1.3.4 2024-03-21
