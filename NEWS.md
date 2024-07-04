@@ -1,3 +1,6 @@
+## 1.3.7 2024-07-4
+* bump up edge-common to v4.7.1: AwsParamStore to support FIPS-approved crypto modules ([EDGLTI-18](https://folio-org.atlassian.net/browse/EDGLTI-18))
+
 ## 1.3.6 2024-06-24
 * Upgrade vertx version to 4.5.8 ([EDGLTI-16](https://folio-org.atlassian.net/browse/EDGLTI-16))
 
