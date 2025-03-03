@@ -11,9 +11,7 @@ import static org.folio.edge.ltiCourses.Constants.OIDC_TTL;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.spy;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import org.junit.AfterClass;
@@ -36,11 +34,9 @@ import com.auth0.jwt.JWTCreator;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 
-import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -51,7 +47,6 @@ import org.apache.log4j.Logger;
 
 import org.folio.edge.core.utils.ApiKeyUtils;
 import org.folio.edge.core.utils.test.TestUtils;
-import org.folio.edge.ltiCourses.model.LtiPlatform;
 import org.folio.edge.ltiCourses.utils.LtiCoursesMockOkapi;
 import org.folio.edge.ltiCourses.utils.MockLtiPlatformServer;
 
@@ -60,10 +55,8 @@ public class MainVerticleTest {
 
   private static final Logger logger = Logger.getLogger(MainVerticleTest.class);
 
-  private static final String titleId = "0c8e8ac5-6bcc-461e-a8d3-4b55a96addc8";
   private static final String apiKey = ApiKeyUtils.generateApiKey(10, "tester", "tester");
   private static final String badApiKey = apiKey + "0000";
-  private static final String unknownTenantApiKey = ApiKeyUtils.generateApiKey(10, "bogus", "tester");;
 
   private static final long requestTimeoutMs = 3000L;
 
@@ -91,7 +84,7 @@ public class MainVerticleTest {
 
     vertx = Vertx.vertx();
 
-    mockLtiPlatformServer = spy(new MockLtiPlatformServer(platformPort, vertx));
+    mockLtiPlatformServer = new MockLtiPlatformServer(platformPort, vertx);
 
     platform = MockLtiPlatform.initialize(platformPort);
 
@@ -101,7 +94,7 @@ public class MainVerticleTest {
     System.setProperty(SYS_REQUEST_TIMEOUT_MS, String.valueOf(requestTimeoutMs));
     System.setProperty(OIDC_TTL, "3000");
 
-    mockOkapi = spy(new LtiCoursesMockOkapi(okapiPort, knownTenants));
+    mockOkapi = new LtiCoursesMockOkapi(okapiPort, knownTenants);
     mockOkapi.start()
       .compose(x -> mockLtiPlatformServer.start())
       .compose(x -> vertx.deployVerticle(MainVerticle.class.getName()))
@@ -116,7 +109,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testAdminHealth(TestContext context) {
+  public void testAdminHealth() {
     logger.info("=== Test the health check endpoint... ===");
 
     final Response resp = RestAssured
@@ -132,7 +125,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testJWKSEndpoint(TestContext context) {
+  public void testJWKSEndpoint() {
     logger.info("=== Test the JWKS endpoint... ===");
 
     final Response resp = RestAssured
@@ -160,7 +153,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testOidcLoginInitBadAPIKey(TestContext context) {
+  public void testOidcLoginInitBadAPIKey() {
     logger.info("=== Test GET OIDC Login Initiation with a bad api key... ===");
 
     RestAssured
@@ -179,7 +172,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testOidcLoginInitUnknownPlatform(TestContext context) {
+  public void testOidcLoginInitUnknownPlatform() {
     logger.info("=== Test GET OIDC Login Initiation with unknown LTI Platform... ===");
 
     RestAssured
@@ -197,7 +190,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testOidcLoginInitGoodAPIKey(TestContext context) {
+  public void testOidcLoginInitGoodAPIKey() {
     logger.info("=== Test GET OIDC Login Initiation... ===");
 
     final Response response = RestAssured
@@ -228,7 +221,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testMockPlatformReturnsJWKS(TestContext context) {
+  public void testMockPlatformReturnsJWKS() {
     logger.info("=== Test mock platform server handles requests for JWKS... ===");
 
     Response resp = RestAssured
@@ -258,7 +251,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testResourceLinkRequestForCourseWithReserves(TestContext context) {
+  public void testResourceLinkRequestForCourseWithReserves() {
     logger.info("=== Test Resource Link requests for course with reserves... ===");
 
     final Response oidcResponse = performOIDCLoginInit();
@@ -287,7 +280,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testResourceLinkRequestForCourseWithReservesThatHaveSuppressedDiscovery(TestContext context) {
+  public void testResourceLinkRequestForCourseWithReservesThatHaveSuppressedDiscovery() {
     logger.info("=== Test Resource Link requests for course with reserves that have suppressed discovery... ===");
 
     final Response oidcResponse = performOIDCLoginInit();
@@ -331,7 +324,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testResourceLinkRequestForCourseWithoutReserves(TestContext context) {
+  public void testResourceLinkRequestForCourseWithoutReserves() {
     logger.info("=== Test Resource Link requests for course without reserves... ===");
 
     final Response oidcResponse = performOIDCLoginInit();
@@ -360,7 +353,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testResourceLinkRequestForNonexistingCourse(TestContext context) {
+  public void testResourceLinkRequestForNonexistingCourse() {
     logger.info("=== Test Resource Link requests for nonexisting courses... ===");
 
     final Response oidcResponse = performOIDCLoginInit();
@@ -389,7 +382,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testJWTSignedWithInvalidKey(TestContext context) {
+  public void testJWTSignedWithInvalidKey() {
     logger.info("=== Test Resource Link requests for that are signed with a different key than the configured JWKS... ===");
 
     final Response oidcResponse = performOIDCLoginInit();
@@ -413,7 +406,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testResourceLinkRequestWithBadNonce(TestContext context) {
+  public void testResourceLinkRequestWithBadNonce() {
     logger.info("=== Test Resource Link requests with an incorrect nonce... ===");
 
     final Response oidcResponse = performOIDCLoginInit();
@@ -437,7 +430,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testResourceLinkRequestWithReplayedRequest(TestContext context) {
+  public void testResourceLinkRequestWithReplayedRequest() {
     logger.info("=== Test Resource Link requests that have an expired nonce... ===");
 
     final Response oidcResponse = performOIDCLoginInit();
@@ -467,7 +460,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testResourceLinkRequestWithExpiredJWT(TestContext context) {
+  public void testResourceLinkRequestWithExpiredJWT() {
     logger.info("=== Test Resource Link requests that have an expired JWT... ===");
 
     final Response oidcResponse = performOIDCLoginInit();
@@ -496,7 +489,7 @@ public class MainVerticleTest {
   }
 
   @Test
-  public void testResourceLinkRequestWithIncorrectState(TestContext context) {
+  public void testResourceLinkRequestWithIncorrectState() {
     logger.info("=== Test Resource Link requests with an incorrect state... ===");
 
     final Response oidcResponse = performOIDCLoginInit();
