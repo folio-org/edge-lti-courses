@@ -33,11 +33,11 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
+import io.vertx.ext.web.templ.pug.PugTemplateEngine;
 
 public class LtiCoursesHandler extends org.folio.edge.core.Handler {
   protected RSAPrivateKey privateKey;
-  protected JadeTemplateEngine jadeTemplateEngine;
+  protected PugTemplateEngine pugTemplateEngine;
   protected String toolPublicKey;
   protected Boolean ignoreOIDCState;
 
@@ -48,13 +48,13 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
     OkapiClientFactory ocf,
     ApiKeyHelper apiKeyHelper,
     RSAPrivateKey privateKey,
-    JadeTemplateEngine jadeTemplateEngine,
+    PugTemplateEngine pugTemplateEngine,
     Boolean ignoreOIDCState
   ) {
     super(secureStore, ocf, apiKeyHelper);
 
     this.privateKey = privateKey;
-    this.jadeTemplateEngine = jadeTemplateEngine;
+    this.pugTemplateEngine = pugTemplateEngine;
     this.ignoreOIDCState = ignoreOIDCState;
   }
 
@@ -328,28 +328,19 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
       .put("reserves", reserves)
       .put("platform", ((LtiPlatform) ctx.get("platform")).asJsonObject());
 
-    jadeTemplateEngine.render(model, "templates/ResourceLinkResponse", html -> {
-      if (!html.succeeded()) {
-        loggedInternalServerError(ctx, "Failed to render resource link: " + html.cause());
-        return;
-      }
-
-      htmlResponse(ctx, html.result().toString());
-    });
+    pugTemplateEngine.render(model, "templates/ResourceLinkResponse")
+        .onSuccess(html -> htmlResponse(ctx, html.toString()))
+        .onFailure(cause -> loggedInternalServerError(ctx, "Failed to render resource link: " + cause));
   }
+
 
   protected void renderNoReserves(RoutingContext ctx) {
     JsonObject model = new JsonObject()
       .put("platform", ((LtiPlatform) ctx.get("platform")).asJsonObject());
 
-    jadeTemplateEngine.render(model, "templates/NoReserves", html -> {
-      if (!html.succeeded()) {
-        loggedInternalServerError(ctx, "Failed to render resource link: " + html.cause());
-        return;
-      }
-
-      htmlResponse(ctx, html.result().toString());
-    });
+    pugTemplateEngine.render(model, "templates/NoReserves")
+      .onSuccess(html -> htmlResponse(ctx, html.toString()))
+      .onFailure(cause -> loggedInternalServerError(ctx, "Failed to render resource link: " + cause));
   }
 
   protected void renderBadRequest(RoutingContext ctx, String msg) {
@@ -362,15 +353,12 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
 
     logger.error(msg);
 
-    jadeTemplateEngine.render(model, "templates/Error", html -> {
-      if (html.failed()) {
-        logger.error("Failed to render Error template: " + html.cause());
+    pugTemplateEngine.render(model, "templates/Error")
+      .onSuccess(html -> htmlResponse(ctx, html.toString(), 400))
+      .onFailure(cause -> {
+        logger.error("Failed to render Error template: " + cause.getLocalizedMessage());
         badRequest(ctx, msg);
-        return;
-      }
-
-      htmlResponse(ctx, html.result().toString(), 400);
-    });
+      });
   }
 
   protected void loggedInternalServerError(RoutingContext ctx, String msg) {
