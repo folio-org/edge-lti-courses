@@ -45,13 +45,7 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-stack-depchain</artifactId>
-        <version>5.0.3</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
+
     </dependencies>
   </dependencyManagement>
 
@@ -170,6 +164,7 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-unit</artifactId>
       <scope>test</scope>
+      <version>${vertxVersion}</version>
     </dependency>
     <dependency>
       <groupId>io.rest-assured</groupId>
