@@ -332,24 +332,15 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
         .onSuccess(html -> htmlResponse(ctx, html.toString()))
         .onFailure(cause -> loggedInternalServerError(ctx, "Failed to render resource link: " + cause));
   }
-        return;
-      }
-      htmlResponse(ctx, result.result().toString());
-    });
-  }
+
 
   protected void renderNoReserves(RoutingContext ctx) {
     JsonObject model = new JsonObject()
       .put("platform", ((LtiPlatform) ctx.get("platform")).asJsonObject());
 
-    pugTemplateEngine.render(model, "templates/NoReserves").onComplete( html -> {
-      if (!html.succeeded()) {
-        loggedInternalServerError(ctx, "Failed to render resource link: " + html.cause());
-        return;
-      }
-
-      htmlResponse(ctx, html.result().toString());
-    });
+    pugTemplateEngine.render(model, "templates/NoReserves")
+      .onSuccess(html -> htmlResponse(ctx, html.toString()))
+      .onFailure(cause -> loggedInternalServerError(ctx, "Failed to render resource link: " + cause));
   }
 
   protected void renderBadRequest(RoutingContext ctx, String msg) {
@@ -362,15 +353,12 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
 
     logger.error(msg);
 
-    pugTemplateEngine.render(model, "templates/Error").onComplete( html -> {
-      if (html.failed()) {
-        logger.error("Failed to render Error template: " + html.cause());
+    pugTemplateEngine.render(model, "templates/Error")
+      .onSuccess(html -> htmlResponse(ctx, html.toString(), 400))
+      .onFailure(cause -> {
+        logger.error("Failed to render Error template: " + cause.getLocalizedMessage());
         badRequest(ctx, msg);
-        return;
-      }
-
-      htmlResponse(ctx, html.result().toString(), 400);
-    });
+      });
   }
 
   protected void loggedInternalServerError(RoutingContext ctx, String msg) {

@@ -33,6 +33,7 @@
 
     <!-- the main class -->
     <exec.mainClass>org.folio.edge.ltiCourses.MainVerticle</exec.mainClass>
+    <vertxVersion>5.0.4</vertxVersion>
   </properties>
 
   <dependencyManagement>
@@ -58,16 +59,18 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
+      <version>${vertxVersion}</version>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
+      <version>${vertxVersion}</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/io.vertx/vertx-web-templ-jade -->
+
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web-templ-pug</artifactId>
-      <version>5.0.4</version>
+      <version>${vertxVersion}</version>
     </dependency>
 
     <dependency>
@@ -171,7 +174,7 @@
     <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
-      <version>5.3.0</version>
+      <version>5.3.2</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -350,11 +353,6 @@
       <id>folio-nexus</id>
       <name>FOLIO Maven repository</name>
       <url>https://repository.folio.org/repository/maven-folio</url>
-    </repository>
-    <repository>
-      <id>central-repository</id>
-      <name>Central Repository</name>
-      <url>https://repo1.maven.org/maven2/</url>
     </repository>
   </repositories>
 
