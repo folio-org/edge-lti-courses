@@ -15,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
+import io.vertx.ext.web.templ.pug.PugTemplateEngine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,7 +29,7 @@ import org.folio.edge.ltiCourses.cache.OidcStateCache;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
+import io.vertx.ext.web.templ.pug.PugTemplateEngine;
 
 public class MainVerticle extends EdgeVerticleHttp {
 
@@ -93,7 +94,7 @@ public class MainVerticle extends EdgeVerticleHttp {
     final KeyPair toolKeyPair = getToolKeyPair();
 
     // Init the Jade templating engine
-    JadeTemplateEngine jadeTemplateEngine = JadeTemplateEngine.create(vertx);
+    PugTemplateEngine pugTemplateEngine = PugTemplateEngine.create(vertx);
 
     // Next, set up the common Edge module stuff.
     final OkapiClientFactory ocf = OkapiClientFactoryInitializer.createInstance(vertx, config());
@@ -110,7 +111,7 @@ public class MainVerticle extends EdgeVerticleHttp {
       ocf,
       apiKeyHelper,
       (RSAPrivateKey)toolKeyPair.getPrivate(),
-      jadeTemplateEngine,
+      pugTemplateEngine,
       ignoreOIDCState
     );
 
