@@ -328,9 +328,10 @@ public class LtiCoursesHandler extends org.folio.edge.core.Handler {
       .put("reserves", reserves)
       .put("platform", ((LtiPlatform) ctx.get("platform")).asJsonObject());
 
-    pugTemplateEngine.render(model, "templates/ResourceLinkResponse").onComplete( result -> {
-      if (!result.succeeded()) {
-        loggedInternalServerError(ctx, "Failed to render resource link: " + result.cause());
+    pugTemplateEngine.render(model, "templates/ResourceLinkResponse")
+        .onSuccess(html -> htmlResponse(ctx, html.toString()))
+        .onFailure(cause -> loggedInternalServerError(ctx, "Failed to render resource link: " + cause));
+  }
         return;
       }
       htmlResponse(ctx, result.result().toString());
