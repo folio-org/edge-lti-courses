@@ -33,7 +33,7 @@
 
     <!-- the main class -->
     <exec.mainClass>org.folio.edge.ltiCourses.MainVerticle</exec.mainClass>
-    <vertxVersion>5.0.4</vertxVersion>
+    <vertxVersion>5.0.5</vertxVersion>
   </properties>
 
   <dependencyManagement>
