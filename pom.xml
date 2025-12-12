@@ -65,6 +65,44 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web-templ-pug</artifactId>
       <version>${vertxVersion}</version>
+      <exclusions>
+        <exclusion>
+          <!-- Jexl Expressionhandler doesn't need GraalVM, see https://github.com/neuland/pug4j
+            https://github.com/neuland/pug4j/blob/pug4j-2.4.1/pom.xml#L317-L346
+            https://github.com/neuland/pug4j/blob/pug4j-3.0.0-alpha-2/pom.xml#L330-L341
+          -->
+          <groupId>org.graalvm.sdk</groupId>
+          <artifactId>graal-sdk</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.graalvm.compiler</groupId>
+          <artifactId>compiler</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.graalvm.js</groupId>
+          <artifactId>js</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.graalvm.js</groupId>
+          <artifactId>js-scriptengine</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.graalvm.tools</groupId>
+          <artifactId>profiler</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.graalvm.tools</groupId>
+          <artifactId>chromeinspector</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.graalvm.polyglot</groupId>
+          <artifactId>polyglot</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.graalvm.polyglot</groupId>
+          <artifactId>js-community</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
